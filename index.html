@@ -118,6 +118,22 @@ nav button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
 .pickrow[aria-checked="true"] .box{background:var(--accent);border-color:var(--accent)}
 .pickrow .nm{display:flex;flex-direction:column;font-weight:500}
 .pickrow .mus{font-size:13px;color:var(--accent);font-weight:500}
+.achs{display:grid;gap:8px}
+.ach{display:flex;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}
+.ach .medal{flex:none;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;font-family:var(--f-display);font-weight:700;font-size:17px;border:2px solid var(--line);color:var(--mute);background:var(--bg)}
+.ach.got{border-color:var(--gold)}
+.ach.got .medal{background:var(--gold);border-color:var(--gold);color:#2a1f00}
+.ach .tx{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.ach .tx b{font-weight:600}
+.ach .tx span{font-size:14px;color:var(--mute)}
+.ach .tx small{font-size:13px;color:var(--mute)}
+.ach.got .tx small{color:var(--accent);font-weight:600}
+.ach.lock{opacity:.85}
+.pbar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:4px}
+.pbar i{display:block;height:100%;background:var(--accent)}
+.boss h2{font-size:30px}
+.hp{height:16px;border-radius:8px;background:var(--line);overflow:hidden;border:1px solid var(--line)}
+.hp i{display:block;height:100%;background:#d93a3a;border-radius:8px;transition:width .5s}
 .btn{background:var(--accent);color:var(--accent-ink);font-weight:600;border-radius:8px;padding:12px 16px;min-height:48px}
 .btn.ghost{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
 .btn[disabled]{opacity:.45;cursor:default}
@@ -588,13 +604,14 @@ function sortSessions(){S.sessions.sort(function(a,c){return a.d<c.d?-1:a.d>c.d?
 function finish(){
   if(!S.draft.sets.length)return;
   var meta=S.draft.meta||{d:today(),name:"Séance"};
-  var xp=(S.draft.xp||0)+30,before=level(totalXp()).L;
+  var xp=(S.draft.xp||0)+30,before=level(totalXp()).L,ab=achIds();
   S.sessions.push({id:Date.now(),d:meta.d,name:meta.name||"",sets:S.draft.sets,rates:S.draft.rates||{},comment:S.draft.comment||"",xp:xp});
   sortSessions();
   S.draft={sets:[],xp:0,wip:{},rates:{},comment:"",meta:null};sh=null;pk=false;discardAsk=false;nw={tpl:"all",name:"",d:null};
   var after=level(totalXp()).L;
   save();render();
-  toast(after>before?"Niveau "+after+" atteint !  +30 XP":"Séance terminée  +30 XP",after>before);
+  var an=achIds(),nn=Object.keys(an).filter(function(k){return !ab[k]}).map(function(k){return an[k]});
+  toast((after>before?"Niveau "+after+" atteint !  +30 XP":"Séance terminée  +30 XP")+(nn.length?"  ·  Succès : "+nn.join(", "):""),after>before||nn.length>0);
 }
 function planned(){
   var dow=new Date().getDay(),td=today(),names=S.sessions.filter(function(x){return x.d===td}).map(function(x){return x.name});
@@ -725,6 +742,105 @@ function spark(id){
   pts.forEach(function(v,i){d+=(i?"L":"M")+(i/(pts.length-1)*W).toFixed(1)+" "+(H-4-(v-mn)/rg*(H-8)).toFixed(1)});
   var ly=(H-4-(pts[pts.length-1]-mn)/rg*(H-8)).toFixed(1);
   return '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" aria-hidden="true"><path d="'+d+'" fill="none" stroke="var(--accent)" stroke-width="2"/><circle cx="'+W+'" cy="'+ly+'" r="3" fill="var(--accent)"/></svg>';
+}
+/* ---------- succès ---------- */
+function dnum(d){var p=d.split("-");return Math.round(Date.UTC(+p[0],+p[1]-1,+p[2])/864e5)}
+function widx(d){return Math.floor((dnum(d)+3)/7)}
+function achCtx(){
+  var ss=S.sessions.slice().sort(function(a,b){return a.d<b.d?-1:a.d>b.d?1:(String(a.id)<String(b.id)?-1:1)});
+  return ss.map(function(s){
+    var o={s:s,d:s.d,w:widx(s.d),dow:new Date(s.d+"T12:00:00").getDay(),pr:0,ton:0,km:{},ms:{},mu:{},maxw:0,rate:null,hasC:!!(s.comment&&s.comment.trim())};
+    s.sets.forEach(function(x){
+      if(x.pr)o.pr++;
+      o.ms[x.m]=1;
+      var mu=muOf(x.m);Object.keys(mu).forEach(function(k){o.mu[k]=1});
+      if(x.w!=null&&x.r!=null){o.ton+=x.w*x.r;if(x.w>o.maxw)o.maxw=x.w}
+      if(x.k)o.km[x.m]=(o.km[x.m]||0)+x.k;
+    });
+    var rv=Object.keys(s.rates||{}).map(function(k){return s.rates[k]}).filter(function(v){return v>0});
+    if(rv.length)o.rate=rv.reduce(function(a,b){return a+b},0)/rv.length;
+    return o});
+}
+function aAny(C,fn){for(var i=0;i<C.length;i++)if(fn(C[i],i))return {date:C[i].d,cur:1,max:1};return {date:null,cur:0,max:1}}
+function aCum(C,fn,max){var t=0,dt=null;C.forEach(function(o){t+=fn(o);if(dt===null&&t>=max)dt=o.d});return {date:dt,cur:Math.min(t,max),max:max,raw:t}}
+function aBest(C,fn,max){var b=0,dt=null;C.forEach(function(o){var v=fn(o);if(v>b)b=v;if(dt===null&&v>=max)dt=o.d});return {date:dt,cur:Math.min(b,max),max:max,raw:b}}
+function aRun(weeks,n){
+  var ks=Object.keys(weeks).map(Number).sort(function(a,b){return a-b}),best=0,run=0,dt=null,prev=null;
+  ks.forEach(function(k){
+    run=(prev!==null&&k===prev+1)?run+1:1;prev=k;
+    if(run>best)best=run;
+    if(run>=n&&dt===null)dt=weeks[k];
+  });
+  return {date:dt,cur:Math.min(best,n),max:n};
+}
+function aWeekMap(C,pred){var m={};C.forEach(function(o){if(pred(o))m[o.w]=o.d});return m}
+function aWeekCounts(C){var m={};C.forEach(function(o){var x=m[o.w]||(m[o.w]={n:0,d:o.d,mu:{}});x.n++;x.d=o.d;Object.keys(o.mu).forEach(function(k){x.mu[k]=1})});return m}
+function kmOf(id){return function(o){return o.km[id]||0}}
+var ACH=[
+ {id:"first",cat:"Régularité",ic:"◆",name:"Première sueur",desc:"Enregistrer ta première séance.",ev:function(C){return aAny(C,function(){return true})}},
+ {id:"mon4",cat:"Régularité",ic:"M",name:"Lundi sans excuse",desc:"4 lundis de suite à la salle.",ev:function(C){return aRun(aWeekMap(C,function(o){return o.dow===1}),4)}},
+ {id:"perfect",cat:"Régularité",ic:"4",name:"Semaine parfaite",desc:"4 séances dans la même semaine.",ev:function(C){var m=aWeekCounts(C),b=0,dt=null;Object.keys(m).forEach(function(k){if(m[k].n>b)b=m[k].n;if(m[k].n>=4&&(dt===null||m[k].d<dt))dt=m[k].d});return {date:dt,cur:Math.min(b,4),max:4}}},
+ {id:"month",cat:"Régularité",ic:"▦",name:"Le mois blindé",desc:"4 semaines d'affilée avec au moins 2 séances.",ev:function(C){var m=aWeekCounts(C),w={};Object.keys(m).forEach(function(k){if(m[k].n>=2)w[k]=m[k].d});return aRun(w,4)}},
+ {id:"back",cat:"Régularité",ic:"↺",name:"Retour de flamme",desc:"Reprendre après 8 jours ou plus sans séance. Revenir compte plus que ne jamais s'arrêter.",ev:function(C){return aAny(C,function(o,i){return i>0&&dnum(o.d)-dnum(C[i-1].d)>=8})}},
+ {id:"weekend",cat:"Régularité",ic:"☼",name:"Bonus week-end",desc:"Une séance un vendredi, un samedi ou un dimanche.",ev:function(C){return aAny(C,function(o){return o.dow===5||o.dow===6||o.dow===0})}},
+ {id:"grit",cat:"Régularité",ic:"♥",name:"Présent malgré tout",desc:"Terminer une séance au ressenti moyen de 2/5 ou moins. Venir un mauvais jour compte autant.",ev:function(C){return aAny(C,function(o){return o.rate!==null&&o.rate<=2})}},
+ {id:"lvl10",cat:"Régularité",ic:"10",name:"Niveau 10",desc:"Atteindre le niveau 10.",ev:function(C){var L=level(totalXp()).L;return {date:L>=10&&C.length?C[C.length-1].d:null,cur:Math.min(L,10),max:10}}},
+
+ {id:"pr1",cat:"Force",ic:"★",name:"Premier record",desc:"Battre un record sur une machine.",ev:function(C){return aAny(C,function(o){return o.pr>0})}},
+ {id:"pr3",cat:"Force",ic:"★★",name:"Triple record",desc:"3 records battus dans la même séance.",ev:function(C){return aBest(C,function(o){return o.pr},3)}},
+ {id:"bw",cat:"Force",ic:"kg",name:"Ton poids de corps",desc:"Soulever sur une machine au moins ton poids de corps.",ev:function(C){var t=S.bw||70;return aBest(C,function(o){return o.maxw},t)}},
+ {id:"p100",cat:"Force",ic:"100",name:"Club des 100",desc:"100 kg à la presse.",ev:function(C){return aBest(C,function(o){var m=0;o.s.sets.forEach(function(x){if(x.m==="press"&&x.w>m)m=x.w});return m},100)}},
+ {id:"p150",cat:"Force",ic:"150",name:"Club des 150",desc:"150 kg à la presse.",ev:function(C){return aBest(C,function(o){var m=0;o.s.sets.forEach(function(x){if(x.m==="press"&&x.w>m)m=x.w});return m},150)}},
+ {id:"p200",cat:"Force",ic:"200",name:"Club des 200",desc:"200 kg à la presse.",ev:function(C){return aBest(C,function(o){var m=0;o.s.sets.forEach(function(x){if(x.m==="press"&&x.w>m)m=x.w});return m},200)}},
+ {id:"t10",cat:"Force",ic:"10t",name:"10 tonnes soulevées",desc:"Charge × reps × séries, cumulé. À peu près deux éléphants.",ev:function(C){return aCum(C,function(o){return o.ton},10000)}},
+ {id:"t50",cat:"Force",ic:"50t",name:"50 tonnes soulevées",desc:"À peu près un Airbus A320 à vide.",ev:function(C){return aCum(C,function(o){return o.ton},50000)}},
+ {id:"t100",cat:"Force",ic:"100t",name:"100 tonnes soulevées",desc:"Une baleine bleue entière.",ev:function(C){return aCum(C,function(o){return o.ton},100000)}},
+ {id:"full",cat:"Force",ic:"◉",name:"Silhouette complète",desc:"Faire travailler presque tous les muscles de la silhouette dans la même semaine.",ev:function(C){var m=aWeekCounts(C),tot=Object.keys(NAME).length,goal=Math.ceil(tot*.8),b=0,dt=null;Object.keys(m).forEach(function(k){var c=Object.keys(m[k].mu).length;if(c>b)b=c;if(c>=goal&&(dt===null||m[k].d<dt))dt=m[k].d});return {date:dt,cur:Math.min(b,goal),max:goal}}},
+
+ {id:"r1",cat:"Course",ic:"1k",name:"Premier kilomètre",desc:"1 km sur le tapis en une séance.",ev:function(C){return aBest(C,kmOf("run"),1)}},
+ {id:"r5",cat:"Course",ic:"5k",name:"Les 5 bornes",desc:"5 km en une sortie.",ev:function(C){return aBest(C,kmOf("run"),5)}},
+ {id:"r10",cat:"Course",ic:"10k",name:"Double digit",desc:"10 km en une sortie.",ev:function(C){return aBest(C,kmOf("run"),10)}},
+ {id:"r21",cat:"Course",ic:"21k",name:"Semi-conquérant",desc:"21,1 km en une sortie.",ev:function(C){return aBest(C,kmOf("run"),21.1)}},
+ {id:"r30",cat:"Course",ic:"30k",name:"Le Mur des 30",desc:"30 km en une sortie. Le boss de ton objectif de mars.",ev:function(C){return aBest(C,kmOf("run"),30)}},
+ {id:"r42",cat:"Course",ic:"42k",name:"Marathonien",desc:"42,2 km en une sortie. La suite, dans un an.",ev:function(C){return aBest(C,kmOf("run"),42.2)}},
+ {id:"c50",cat:"Course",ic:"50",name:"50 km courus",desc:"Cumulé sur tous tes tapis et sorties.",ev:function(C){return aCum(C,kmOf("run"),50)}},
+ {id:"c100",cat:"Course",ic:"100",name:"Cent bornes",desc:"100 km courus au total.",ev:function(C){return aCum(C,kmOf("run"),100)}},
+ {id:"c200",cat:"Course",ic:"200",name:"Presque Paris–Lille",desc:"200 km courus au total.",ev:function(C){return aCum(C,kmOf("run"),200)}},
+ {id:"row1",cat:"Course",ic:"~",name:"Rameur : 1 km",desc:"1 km de rameur cumulé.",ev:function(C){return aCum(C,kmOf("rower"),1)}},
+ {id:"row5",cat:"Course",ic:"~~",name:"Rameur : 5 km",desc:"5 km de rameur cumulé.",ev:function(C){return aCum(C,kmOf("rower"),5)}},
+ {id:"row10",cat:"Course",ic:"≋",name:"Viking",desc:"10 km de rameur cumulé.",ev:function(C){return aCum(C,kmOf("rower"),10)}},
+
+ {id:"col10",cat:"Fun",ic:"10",name:"Collectionneur",desc:"Avoir fait 10 machines ou exercices différents.",ev:function(C){var m={},dt=null,n=0;C.forEach(function(o){Object.keys(o.ms).forEach(function(k){m[k]=1});n=Object.keys(m).length;if(dt===null&&n>=10)dt=o.d});return {date:dt,cur:Math.min(n,10),max:10}}},
+ {id:"col20",cat:"Fun",ic:"20",name:"Grand collectionneur",desc:"20 machines ou exercices différents.",ev:function(C){var m={},dt=null,n=0;C.forEach(function(o){Object.keys(o.ms).forEach(function(k){m[k]=1});n=Object.keys(m).length;if(dt===null&&n>=20)dt=o.d});return {date:dt,cur:Math.min(n,20),max:20}}},
+ {id:"arch",cat:"Fun",ic:"✎",name:"Archiviste",desc:"Écrire un commentaire sur 5 séances.",ev:function(C){return aCum(C,function(o){return o.hasC?1:0},5)}},
+ {id:"time",cat:"Fun",ic:"⌛",secret:1,name:"Voyageur du temps",desc:"Saisir une séance avec une date passée.",ev:function(C){return aAny(C,function(o){var id=o.s.id;return typeof id==="number"&&id>1e12&&new Date(id).toLocaleDateString("sv")!==o.d})}},
+ {id:"pile",cat:"Fun",ic:"=",secret:1,name:"Date en double",desc:"Une séance un jour où le jour et le mois sont identiques (11/11, 12/12…).",ev:function(C){return aAny(C,function(o){var p=o.d.split("-");return +p[1]===+p[2]})}},
+ {id:"early",cat:"Fun",ic:"∞",secret:1,name:"Le jour d'après",desc:"Deux séances en deux jours consécutifs.",ev:function(C){return aAny(C,function(o,i){return i>0&&dnum(o.d)-dnum(C[i-1].d)===1})}}
+];
+function achAll(){var C=achCtx();return ACH.map(function(a){var r=a.ev(C);r.a=a;r.done=!!r.date;return r})}
+function achIds(){var o={};achAll().forEach(function(r){if(r.done)o[r.a.id]=r.a.name});return o}
+function fmtKmA(v){return (Math.round(v*10)/10).toLocaleString("fr-FR",{maximumFractionDigits:1})}
+function succesHtml(){
+  var R=achAll(),C=achCtx(),done=R.filter(function(r){return r.done}).length;
+  var best=0;C.forEach(function(o){var v=o.km.run||0;if(v>best)best=v});
+  var steps=[12,15,18,21,25,30],hp=Math.max(0,Math.min(100,Math.round((30-best)/30*100)));
+  var boss='<section class="card boss" aria-label="Boss : le Mur des 30"><span class="label">Boss de mars</span><h2>Le Mur des 30</h2>'+
+    '<div class="hp" role="img" aria-label="Points de vie du boss : '+hp+' pour cent"><i style="width:'+hp+'%"></i></div>'+
+    '<div class="xpline"><span>'+(best>=30?'Boss vaincu. Bravo !':'Meilleure sortie : '+(best?fmtKmA(best)+' km':'aucune pour l\'instant')+'. Il reste '+fmtKmA(30-best)+' km pour le vaincre.')+'</span></div>'+
+    '<div class="chips">'+steps.map(function(k){return '<span class="chip'+(best>=k?' pr':'')+'">'+k+' km'+(best>=k?' ✓':'')+'</span>'}).join("")+'</div></section>';
+  var cats=["Régularité","Force","Course","Fun"],out='';
+  cats.forEach(function(c){
+    var rs=R.filter(function(r){return r.a.cat===c}),nd=rs.filter(function(r){return r.done}).length;
+    out+='<div class="sec"><h2>'+c+'</h2><span class="label">'+nd+' / '+rs.length+'</span></div><div class="achs">'+rs.map(function(r){
+      var a=r.a;
+      if(a.secret&&!r.done)return '<div class="ach lock"><span class="medal">?</span><div class="tx"><b>Succès secret</b><span>À découvrir au fil de tes séances.</span></div></div>';
+      var pct=r.max>0?Math.round(r.cur/r.max*100):0;
+      var prog=(!r.done&&r.max>1)?'<div class="pbar"><i style="width:'+pct+'%"></i></div><small>'+fmtKmA(r.raw!=null?Math.min(r.raw,r.max):r.cur)+' / '+fmtKmA(r.max)+'</small>':'';
+      return '<div class="ach'+(r.done?' got':' lock')+'"><span class="medal" aria-hidden="true">'+esc(a.ic)+'</span><div class="tx"><b>'+esc(a.name)+'</b><span>'+esc(a.desc)+'</span>'+
+        (r.done?'<small>Débloqué le '+esc(new Date(r.date+"T12:00:00").toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"}))+'</small>':prog)+'</div></div>';
+    }).join("")+'</div>';
+  });
+  return '<section class="card"><span class="label">Succès débloqués</span><div class="num" style="font-size:34px;line-height:1">'+done+' / '+R.length+'</div><div class="xp"><i style="width:'+Math.round(done/R.length*100)+'%"></i></div></section>'+boss+out;
 }
 function progresHtml(){
   var cards=S.machines.filter(function(m){return !m.hidden}).map(function(m){
@@ -980,10 +1096,10 @@ function render(){
   var app=document.getElementById("app");
   var keep=document.getElementById("newm"),kv=keep?keep.value:"",ks=document.getElementById("newmu"),kk=ks?ks.value:"";
   var a0=document.activeElement,aid=a0&&/^(cmd|cmdet|pst)$/.test(a0.id||"")?a0.id:null,av=aid?a0.value:null,as=aid?a0.selectionStart:0;
-  var tabs=[["seance","Séance"],["muscles","Muscles"],["histo","Historique"],["progres","Progrès"]].map(function(t){
+  var tabs=[["seance","Séance"],["muscles","Muscles"],["histo","Historique"],["progres","Progrès"],["succes","Succès"]].map(function(t){
     return '<button role="tab" data-a="tab" data-t="'+t[0]+'" aria-selected="'+(tab===t[0])+'">'+t[1]+'</button>'}).join("");
   app.innerHTML=headerHtml()+'<nav role="tablist">'+tabs+'</nav>'+
-    (tab==="seance"?seanceHtml():tab==="muscles"?musclesHtml():tab==="histo"?historiqueHtml():progresHtml()+backupHtml())+
+    (tab==="seance"?seanceHtml():tab==="muscles"?musclesHtml():tab==="histo"?historiqueHtml():tab==="succes"?succesHtml():progresHtml()+backupHtml())+
     '<div class="foot">'+esc(status)+(needBackup()?' · pense à enregistrer une sauvegarde (onglet Progrès)':'')+' · v'+APP_VERSION+'</div>';
   var ni=document.getElementById("newm");if(ni&&kv)ni.value=kv;
   var ns=document.getElementById("newmu");if(ns&&kk)ns.value=kk;
