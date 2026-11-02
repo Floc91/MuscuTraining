@@ -517,7 +517,7 @@ function adopt(d){
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"03/11 00:10";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"03/11 00:17";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -1349,7 +1349,7 @@ function sheetHtml(){
     '<div class="setsh label'+(kind==="t"?' one':'')+'"><span>#</span>'+hdr+'<span></span></div>'+
     rows+
     '<button class="btn ghost" data-a="addrow">+ Ajouter une série</button>'+
-    '<div><span class="label">Ressenti de l\'exercice</span><div class="rate" style="margin-top:6px" role="group" aria-label="Note de 1 à 5">'+[1,2,3,4,5].map(function(n){return '<button data-a="rate" data-v="'+n+'" aria-pressed="'+(S.draft.rates[sh.id]===n)+'">'+n+'</button>'}).join("")+'</div><div class="xpline" style="margin-top:6px"><span>'+(S.draft.rates[sh.id]?RL[S.draft.rates[sh.id]]:"1 = très dur, 5 = excellent")+'</span></div></div>'+
+    '<div><span class="label">Ressenti de l\'exercice</span><div class="rate" style="margin-top:6px" role="group" aria-label="Note de 1 à 5">'+[1,2,3,4,5].map(function(n){return '<button data-a="rate" data-v="'+n+'" aria-pressed="'+(S.draft.rates[sh.id]===n)+'">'+n+'</button>'}).join("")+'</div><div class="xpline" style="margin-top:6px"><span>'+(S.draft.rates[sh.id]?RL[S.draft.rates[sh.id]]:"1 = très dur, 5 = excellent · +5 XP la première fois")+'</span></div></div>'+
     '<div class="endrow"><button class="btn" data-a="terminer"'+(sh.rows.length?'':' disabled')+'>Terminer l\'exercice</button><button class="trash" data-a="unsel" aria-label="Retirer cet exercice de la séance">'+IC_TR+'</button></div>'+
     delBlock+
     '</div></div>';
@@ -1449,7 +1449,7 @@ function act(el){
     }}
   else if(a==="del"){sh.rows.splice(+el.getAttribute("data-i"),1);touch();render()}
   else if(a==="drate"){var rse=det&&sess(det.id);if(rse){var rid=el.getAttribute("data-id"),rv=+el.getAttribute("data-v");if(!rse.rates)rse.rates={};if(rse.rates[rid]===rv)delete rse.rates[rid];else rse.rates[rid]=rv;save();render()}}
-  else if(a==="rate"){var v=+el.getAttribute("data-v");if(S.draft.rates[sh.id]===v)delete S.draft.rates[sh.id];else S.draft.rates[sh.id]=v;save();render()}
+  else if(a==="rate"){var v=+el.getAttribute("data-v"),gained=false;if(S.draft.rates[sh.id]===v)delete S.draft.rates[sh.id];else{S.draft.rates[sh.id]=v;if(!S.draft.rxp)S.draft.rxp={};if(!S.draft.rxp[sh.id]){S.draft.rxp[sh.id]=1;S.draft.xp=(S.draft.xp||0)+5;gained=true}}save();render();if(gained)toast("+5 XP · ressenti noté")}
   else if(a==="addrow")addRow();
   else if(a==="startplan"){var pp=planned();if(pp)startSession(pp.p.id,null,null)}
   else if(a==="tpl"){nw.tpl=el.getAttribute("data-k");render()}
@@ -1475,7 +1475,7 @@ function act(el){
     rm.forEach(function(x){S.draft.xp=Math.max(0,(S.draft.xp||0)-10-(x.pr?25:0));if(x.pr)S.prs=Math.max(0,S.prs-1)});
     S.draft.sets=S.draft.sets.filter(function(x){return x.m!==uid});
     var sl=selIds(),ui=sl.indexOf(uid);if(ui>=0)sl.splice(ui,1);
-    delete S.draft.wip[uid];if(S.draft.rates)delete S.draft.rates[uid];sh=null;save();render();toast("Exercice retiré de la séance")}
+    delete S.draft.wip[uid];if(S.draft.rates)delete S.draft.rates[uid];if(S.draft.rxp&&S.draft.rxp[uid]){S.draft.xp=Math.max(0,(S.draft.xp||0)-5);delete S.draft.rxp[uid]}sh=null;save();render();toast("Exercice retiré de la séance")}
   else if(a==="mcancel"){sh.del=false;render()}
   else if(a==="mconfirm"){var hm=mach(sh.id);if(hm)hm.hidden=true;delete S.draft.wip[sh.id];sh=null;save();render();toast("Machine supprimée, historique conservé")}
   else if(a==="mrestore"){var rm=mach(el.getAttribute("data-id"));if(rm){rm.hidden=false;save();render()}}
