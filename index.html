@@ -175,6 +175,7 @@ nav button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
 .trophy{flex:none;filter:drop-shadow(0 1px 0 rgba(255,255,255,.5))}
 .gb{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:52px;font-size:17px}
 .btn{background:var(--accent);color:var(--accent-ink);font-weight:600;border-radius:8px;padding:12px 16px;min-height:48px}
+.btn.big{min-height:56px;font-size:17px;margin-top:6px;box-shadow:0 2px 0 rgba(0,0,0,.18),0 6px 16px color-mix(in srgb,var(--accent) 35%,transparent)}
 .btn.ghost{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
 .btn[disabled]{opacity:.45;cursor:default}
 .empty{background:var(--surface);border:1px dashed var(--line);border-radius:8px;padding:16px;color:var(--mute)}
@@ -491,7 +492,7 @@ function adopt(d){
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 20:40";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 20:56";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -788,7 +789,7 @@ function seanceHtml(){
       '<div class="pills" role="group" aria-label="Type de séance">'+tpls.map(function(t){return '<button class="pill" data-a="tpl" data-k="'+esc(t[0])+'" aria-pressed="'+(nw.tpl===t[0])+'">'+esc(t[1])+'</button>'}).join("")+'</div>'+
       '<label class="fld"><span>Nom de la séance (par défaut : '+esc(pname(nw.tpl))+')</span><input id="nwname" data-f="nwn" placeholder="'+esc(pname(nw.tpl))+'" maxlength="40" value="'+esc(nw.name)+'" autocomplete="off"></label>'+
       '<label class="fld"><span>Date (modifiable)</span><input type="date" id="nwd" data-f="nwd" max="'+td+'" value="'+esc(nw.d||td)+'"></label>'+
-      '<button class="btn'+(pl&&pl.mode!=="next"?' ghost':'')+'" data-a="startother">Commencer cette séance</button></section>'+
+      '<button class="btn big" data-a="startother">▶ Commencer cette séance</button></section>'+
       '<div class="two"><button class="btn ghost" data-a="pgropen">Mes séances</button><button class="btn ghost" data-a="mgropen">Mes machines</button></div>';
     return hero+start+(S.sessions.length===0?'<div class="empty">Aucune séance enregistrée pour l\'instant.</div>':'');
   }
@@ -1318,7 +1319,9 @@ function sheetHtml(){
     delBlock+
     '</div></div>';
 }
+var topNext=false;
 function render(){
+  var sy=window.scrollY||window.pageYOffset||0;
   var app=document.getElementById("app");
   var keep=document.getElementById("newm"),kv=keep?keep.value:"",ks=document.getElementById("newmu"),kk=ks?ks.value:"";
   var a0=document.activeElement,aid=a0&&/^(cmd|cmdet|pst)$/.test(a0.id||"")?a0.id:null,av=aid?a0.value:null,as=aid?a0.selectionStart:0;
@@ -1333,7 +1336,8 @@ function render(){
   document.getElementById("bar").innerHTML='<div class="bar"><div class="in"><div class="sum">'+n+' série'+(n>1?"s":"")+'<br>'+(S.draft.xp||0)+' XP</div><button class="btn" data-a="finish"'+(n?"":" disabled")+'>Terminer la séance</button></div></div>';
   document.getElementById("sheet").innerHTML=sheetHtml();
   document.getElementById("pop").innerHTML=popHtml();
-  if(aid){var ae=document.getElementById(aid);if(ae){ae.value=av;ae.focus();try{ae.setSelectionRange(as,as)}catch(_){}}}
+  if(aid){var ae=document.getElementById(aid);if(ae){ae.value=av;ae.focus({preventScroll:true});try{ae.setSelectionRange(as,as)}catch(_){}}}
+  if(topNext){topNext=false;window.scrollTo(0,0)}else window.scrollTo(0,sy);
 }
 function act(el){
   var a=el.getAttribute("data-a");
@@ -1363,7 +1367,7 @@ function act(el){
   else if(a==="nopen"){popN=true;render()}
   else if(a==="nsave"){S.name=nameDraft.trim();afterName();save();render()}
   else if(a==="nskip"){if(S.name===undefined)S.name="";afterName();save();render()}
-  else if(a==="tab"){tab=el.getAttribute("data-t");render()}
+  else if(a==="tab"){tab=el.getAttribute("data-t");topNext=true;render()}
   else if(a==="prog"){setProg(el.getAttribute("data-p"));save();render()}
   else if(a==="stkopen"){popS=true;stkSel=null;render()}
   else if(a==="stkclose"){popS=false;render()}
