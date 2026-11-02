@@ -15,7 +15,7 @@
 <style>
 /* Layout: one phone-width column. Header with level, tabs; the body silhouette is the hero of Séance and Muscles; bottom sheet to log a set. */
 :root{
-  --wm1:#0a9fe0; --wm2:#9aa6b2;
+  --wm1:var(--accent); --wm2:#b7c0c8;
   --bg:#e9ecee; --surface:#f7f8f9; --ink:#15191c; --mute:#5d676e; --line:#cfd5d9;
   --accent:#2540ff; --accent-ink:#ffffff; --gold:#e8a900; --gold-soft:#fff2c4;
   --skin:#d9dfe4; --skin2:#cbd3d9; --muscle:#c3ccd3; --muscle-line:#aab5be; --lit:#2540ff; --glow:rgba(37,64,255,.55);
@@ -24,14 +24,14 @@
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-  --wm1:#38bdf8; --wm2:#3b4757;
+  --wm1:var(--accent); --wm2:#3b4757;
     --bg:#101315; --surface:#181d20; --ink:#eef1f2; --mute:#8b979e; --line:#2a3135;
     --accent:#7189ff; --accent-ink:#0b0f2e; --gold:#ffcb2e; --gold-soft:#3a3010;
     --skin:#222a30; --skin2:#2a343b; --muscle:#323d45; --muscle-line:#46535d; --lit:#7a90ff; --glow:rgba(122,144,255,.65); color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
-  --wm1:#38bdf8; --wm2:#3b4757;
+  --wm1:var(--accent); --wm2:#3b4757;
   --bg:#101315; --surface:#181d20; --ink:#eef1f2; --mute:#8b979e; --line:#2a3135;
   --accent:#7189ff; --accent-ink:#0b0f2e; --gold:#ffcb2e; --gold-soft:#3a3010;
   --skin:#222a30; --skin2:#2a343b; --muscle:#323d45; --muscle-line:#46535d; --lit:#7a90ff; --glow:rgba(122,144,255,.65); color-scheme:dark;
@@ -68,7 +68,7 @@ h1{font-size:34px}
 .lrow span{text-align:right;font-weight:600}
 .lrow small{text-align:right;min-width:80px;color:var(--mute);font-size:13px}
 button.lvl{border:0;cursor:pointer;min-height:36px}
-.wm{filter:drop-shadow(0 0 5px color-mix(in srgb,var(--wm1) 45%,transparent))}
+.wm{filter:drop-shadow(0 0 4px color-mix(in srgb,var(--accent) 30%,transparent))}
 .wm .wm-l{stroke:var(--wm1)}.wm .wm-d{stroke:var(--wm2)}
 .wm .f.wm-l{fill:var(--wm1);stroke:none}.wm .f.wm-d{fill:var(--wm2);stroke:none}
 .lvl{font-family:var(--f-display);font-weight:700;font-size:20px;background:var(--ink);color:var(--bg);padding:4px 10px;border-radius:4px;white-space:nowrap}
@@ -472,7 +472,7 @@ function adopt(d){
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 18:06";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 18:15";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
