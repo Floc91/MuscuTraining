@@ -158,6 +158,13 @@ nav button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
 .boss h2{font-size:30px}
 .hp{height:16px;border-radius:8px;background:var(--line);overflow:hidden;border:1px solid var(--line)}
 .hp i{display:block;height:100%;background:#d93a3a;border-radius:8px;transition:width .5s}
+.brand{display:flex;flex-direction:column;align-items:flex-start;gap:0}
+.who{background:none;border:0;padding:2px 0;min-height:30px;font-weight:600;font-size:15px;color:var(--mute);text-align:left}
+.who.dim{font-weight:500;opacity:.7}
+.mchips{display:flex;flex-wrap:wrap;gap:8px}
+.mchip{border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 12px;min-height:40px;font-weight:500}
+.mchip.p{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.mchip.s{border-color:var(--accent);color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--surface))}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .btn.gold{background:var(--gold);color:#2a1f00}
 .gb2{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:52px}
@@ -272,7 +279,7 @@ html,body{margin:0}
 <script>
 (function(){
 var TH={today:[1,3,6],week:[3,8,16],all:[8,25,60]};
-var LS="carnet-salle-v2", GOAL_MIN=3, GOAL_WEEK=4;
+var LS="carnet-salle-v2", GOAL_MIN=3, GOAL_WEEK=4, BLANK=true;
 function today(){return new Date().toLocaleDateString("sv")}
 
 /* ---------- muscles ---------- */
@@ -306,10 +313,14 @@ var MU={
 var PROG={mon:["press","curl","ext","abd","add","calf","plank","rower"],wed:["run","rower","plank"],long:["run","rower"],
   tue:["chest","lat","row","rfly","pfly","chestclose","rower","plank"],
   thu:["row","lat","chest","pfly","rfly","chestclose","tri","press","add","abd","calf","rower","plank"]};
-var PROGN={mon:"Bas",tue:"Haut",wed:"Cardio",thu:"Full body",long:"Sortie longue",all:"Séance libre"};
-var DAYN={mon:"lundi",tue:"mardi",wed:"mercredi",thu:"jeudi"};
-var TPL=["mon","tue","thu","wed","long","all"];
 var nw={tpl:"all",name:"",d:null}, discardAsk=false;
+var popN=false,popM=false,popP=false,mEd=null,pEd=null,nameDraft="",pdelAsk=false,mdelAsk=false;
+function legacyProgs(){return [
+  {id:"p_mon",name:"Bas",machines:PROG.mon.slice()},{id:"p_tue",name:"Haut",machines:PROG.tue.slice()},
+  {id:"p_wed",name:"Cardio",machines:PROG.wed.slice()},{id:"p_thu",name:"Full body",machines:PROG.thu.slice()},
+  {id:"p_long",name:"Sortie longue",machines:PROG.long.slice()}]}
+function progById(id){return (S.progs||[]).filter(function(p){return p.id===id})[0]||null}
+function pname(id){return id==="all"?"Séance libre":(progById(id)||{name:"Séance"}).name}
 
 /* ---------- silhouette (moitié gauche, miroir pour la droite) ---------- */
 var MIR='transform="translate(200 0) scale(-1 1)"';
@@ -372,17 +383,17 @@ function figs(lv,tap,sel){
 function seed(){
   function m(id,name,w,step){return {id:id,name:name,w:w,step:step||5}}
   return {v:2,bw:70,
-    machines:[
+    machines:BLANK?[]:[
       m("chest","Chest press",25),m("chestclose","Chest press prise serrée",20),m("lat","Tirage vertical",20),m("row","Low row",25),
       m("rfly","Reverse fly",15,2.5),m("pfly","Pec fly",20,2.5),m("tri","Poulie corde (triceps)",15,2.5),
       m("press","Leg press",50,10),m("curl","Leg curl",25),m("ext","Leg extension",20),
       m("add","Adducteurs",20),m("abd","Abducteurs",25),m("calf","Mollets (leg press)",40,10),
       {id:"plank",name:"Gainage",w:0,step:5,kind:"t"},{id:"rower",name:"Rameur",w:0,step:5,kind:"d"},{id:"run",name:"Tapis de course",w:0,step:5,kind:"d"}],
-    sessions:[],draft:{sets:[],xp:0,wip:{},rates:{},comment:"",meta:null},prs:0,goal:2,off:[],goals:{}};
+    progs:BLANK?[]:legacyProgs(),sessions:[],draft:{sets:[],xp:0,wip:{},rates:{},comment:"",meta:null},prs:0,goal:2,off:[],goals:{}};
 }
 var seededNow=false, det=null, chartId=null, bk={msg:"",text:"",pending:null,info:""};
 var S=seed(), loaded=false, dbDoc=null, tab="seance", sh=null, status="", rng="today", pickM=null, pk=false, popA=false, popB=false, popL=false, popS=false, popG=false;
-var prog={1:"mon",2:"tue",3:"wed",4:"thu"}[new Date().getDay()]||"all";
+var prog="all";
 
 /* ---------- historique de départ ---------- */
 function R(n,m,w,r){var a=[];for(var i=0;i<n;i++)a.push([m,w,r]);return a}
@@ -423,7 +434,7 @@ function ensureSeed(s){
 }
 function afterLoad(){
   if(seededNow){seededNow=false;save()}
-  if(typeof (S.goals||{})[wk(today())]!=="number")popG=true;
+  if(S.name===undefined)popN=true;else if(needGoal())popG=true;
   var b=bonusInfo().total;
   if(b>(S.bsee||0)){var d=b-(S.bsee||0);S.bsee=b;save();toast("Semaine validée : +"+d+" XP de bonus",true)}
 }
@@ -468,11 +479,15 @@ function adopt(d){
   if(typeof d.bsee==='number')s.bsee=d.bsee;
   if(Array.isArray(d.off))s.off=d.off.filter(function(x){return typeof x==="string"});
   if(d.seedv)s.seedv=d.seedv;else if(d.seeded)s.seedv=1;
+  if(typeof d.name==="string")s.name=d.name.slice(0,30);
+  if(Array.isArray(d.progs))s.progs=d.progs.filter(function(p){return p&&typeof p.name==="string"&&Array.isArray(p.machines)}).map(function(p){return {id:String(p.id||"p"+Math.random().toString(36).slice(2,8)),name:p.name.slice(0,40),machines:p.machines.filter(function(x){return typeof x==="string"})}});
+  else if((Array.isArray(d.machines)&&d.machines.length)||(Array.isArray(d.sessions)&&d.sessions.length))s.progs=legacyProgs();
+  var exm={};s.machines.forEach(function(m){exm[m.id]=1});s.progs.forEach(function(p){p.machines=p.machines.filter(function(x){return exm[x]})});
   ensureSeed(s);renameHaut(s);
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 18:15";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 18:35";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -502,7 +517,7 @@ function fmtSet(x){
 function fmt(n){return (Math.round(n*10)/10).toString().replace(".",",")}
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
 function mach(id){return S.machines.filter(function(m){return m.id===id})[0]}
-function muOf(id){var m=mach(id);return (MU[id])||(m&&m.mu)||{}}
+function muOf(id){var m=mach(id);return (m&&m.mu&&Object.keys(m.mu).length)?m.mu:(MU[id]||{})}
 function muNames(id){
   var mu=muOf(id),p=[],q=[];
   Object.keys(mu).forEach(function(k){if(NAME[k])(mu[k]==="p"?p:q).push(NAME[k])});
@@ -680,21 +695,17 @@ function finish(){
   toast((after>before?"Niveau "+after+" atteint !  +30 XP":"Séance terminée  +30 XP")+(nn.length?"  ·  Succès : "+nn.join(", "):"")+((wkn0<weekGoal(wk(meta.d))&&(weekCounts()[wk(meta.d)]||0)>=weekGoal(wk(meta.d)))?"  ·  Objectif de la semaine atteint !":""),after>before||nn.length>0||(wkn0<weekGoal(wk(meta.d))&&(weekCounts()[wk(meta.d)]||0)>=weekGoal(wk(meta.d))));
 }
 function planned(){
-  var dow=new Date().getDay(),td=today(),names=S.sessions.filter(function(x){return x.d===td}).map(function(x){return x.name});
-  for(var i=0;i<7;i++){
-    var k={1:"mon",2:"tue",3:"wed",4:"thu"}[(dow+i)%7];
-    if(!k)continue;
-    if(i===0&&names.indexOf(PROGN[k])>=0)continue;
-    return {k:k,when:i===0?"aujourd'hui":i===1?"demain":DAYN[k]};
-  }
-  return {k:"mon",when:"lundi"};
+  var ps=S.progs||[];if(!ps.length)return null;
+  var idx=null;
+  for(var i=S.sessions.length-1;i>=0&&idx===null;i--){for(var j=0;j<ps.length;j++){if(ps[j].name===S.sessions[i].name){idx=j;break}}}
+  return ps[idx===null?0:(idx+1)%ps.length];
 }
-function progList(k){return (PROG[k]||[]).slice()}
+function progList(k){var p=progById(k);return p?p.machines.slice():[]}
 function selIds(){var m=S.draft.meta;if(!m)return[];if(!Array.isArray(m.sel))m.sel=progList(m.prog||"all");return m.sel}
 function inSel(id){return selIds().indexOf(id)>=0||S.draft.sets.some(function(x){return x.m===id})||!!(S.draft.wip[id]&&S.draft.wip[id].length)}
 function setProg(k){
   var m=S.draft.meta;if(!m)return;
-  if(m.name===PROGN[m.prog]||!m.name)m.name=PROGN[k]||m.name;
+  if(m.name===pname(m.prog)||!m.name)m.name=pname(k);
   m.prog=k;m.sel=progList(k);prog=k;
 }
 function togSel(id){
@@ -705,7 +716,7 @@ function togSel(id){
 }
 function startSession(k,name,d){
   var t=today();d=d||t;if(d>t)d=t;
-  S.draft.meta={d:d,name:(name||PROGN[k]||"Séance").slice(0,40),prog:k,sel:progList(k)};
+  S.draft.meta={d:d,name:(name||pname(k)).slice(0,40),prog:k,sel:progList(k)};
   prog=k;discardAsk=false;save();render();
 }
 function addMachine(){
@@ -727,8 +738,9 @@ function setBw(){
 function headerHtml(){
   var xp=totalXp(),lv=level(xp),pct=Math.round((xp-lv.lo)/(lv.hi-lv.lo)*100);
   var c=weekCounts(),n=c[wk(today())]||0,st=streak(),dots="";
+  var who=S.name?'<button class="who" data-a="nopen" aria-label="Modifier le pseudo">'+esc(S.name)+'</button>':'<button class="who dim" data-a="nopen">+ pseudo</button>';
   for(var i=0;i<weekGoal(wk(today()));i++)dots+='<i class="'+(i<n?"on":"")+'"></i>';
-  return '<header><div class="top"><h1><svg class="wm" viewBox="0 0 172 74" height="46" role="img" aria-label="Reps" fill="none" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"><g class="wm-l" transform="skewX(-10) translate(14 0)"><path d="M5 52V8H21Q33 8 33 20Q33 32 21 32H5M21 32L34 52"/><path transform="translate(44 0)" d="M29 8H5V52H29M5 30H25"/><path transform="translate(86 0)" d="M5 52V8H21Q33 8 33 20Q33 32 21 32H5"/><path transform="translate(126 0)" d="M29 14Q26 8 17 8Q5 8 5 18Q5 27 17 30Q29 33 29 42Q29 52 17 52Q7 52 4 45"/></g><g stroke="none"><circle class="wm-l f" cx="50" cy="68" r="4.4"/><circle class="wm-l f" cx="70" cy="68" r="4.4"/><circle class="wm-l f" cx="90" cy="68" r="4.4"/><circle class="wm-d f" cx="110" cy="68" r="4.4"/><circle class="wm-d f" cx="130" cy="68" r="4.4"/></g></svg></h1><button class="lvl" data-a="lvlopen" aria-label="Voir les niveaux suivants">Niv. '+lv.L+'</button></div>'+
+  return '<header><div class="top"><div class="brand"><h1><svg class="wm" viewBox="0 0 172 74" height="46" role="img" aria-label="Reps" fill="none" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"><g class="wm-l" transform="skewX(-10) translate(14 0)"><path d="M5 52V8H21Q33 8 33 20Q33 32 21 32H5M21 32L34 52"/><path transform="translate(44 0)" d="M29 8H5V52H29M5 30H25"/><path transform="translate(86 0)" d="M5 52V8H21Q33 8 33 20Q33 32 21 32H5"/><path transform="translate(126 0)" d="M29 14Q26 8 17 8Q5 8 5 18Q5 27 17 30Q29 33 29 42Q29 52 17 52Q7 52 4 45"/></g><g stroke="none"><circle class="wm-l f" cx="50" cy="68" r="4.4"/><circle class="wm-l f" cx="70" cy="68" r="4.4"/><circle class="wm-l f" cx="90" cy="68" r="4.4"/><circle class="wm-d f" cx="110" cy="68" r="4.4"/><circle class="wm-d f" cx="130" cy="68" r="4.4"/></g></svg></h1>'+who+'</div><button class="lvl" data-a="lvlopen" aria-label="Voir les niveaux suivants">Niv. '+lv.L+'</button></div>'+
     '<div><div class="xp" role="progressbar" aria-valuenow="'+pct+'" aria-valuemin="0" aria-valuemax="100" aria-label="Progression vers le niveau suivant"><i style="width:'+pct+'%"></i></div>'+
     '<div class="xpline"><span>'+xp+' XP</span><span>Niveau '+(lv.L+1)+' à '+lv.hi+' XP</span></div></div>'+
     '<div class="stats"><button class="stat sbtn" data-a="stkopen" aria-label="Détail de la série"><span class="label">Série en cours</span><div class="num">'+st+' <small style="font-size:16px;color:var(--mute);font-family:var(--f-body);font-weight:500">sem.</small></div><div class="xpline">Au moins 1 séance par semaine</div></button>'+
@@ -742,19 +754,25 @@ function seanceHtml(){
   var sc0=muscleScores("today"),lv=levels(sc0,"today"),names=litNames(lv),meta=S.draft.meta;
   var cap=names.length?'<b>Muscles sollicités :</b> '+esc(names.join(", "))+'.':'Termine un exercice et les muscles travaillés s\'allument.';
   var hero='<section class="stage" aria-label="Muscles de la séance">'+figs(lv,false,null)+legendHtml()+'<p class="cap" aria-live="polite">'+cap+'</p></section>';
-  var opts='<option value="">Muscle (optionnel)</option>'+Object.keys(NAME).map(function(k){return '<option value="'+k+'">'+esc(NAME[k])+'</option>'}).join("");
-  var hid=S.machines.filter(function(m){return m.hidden});
-  var hidHtml=hid.length?'<div><span class="label">Machines supprimées (historique conservé)</span><div class="chips" style="margin-top:6px">'+hid.map(function(m){return '<button class="chip" data-a="mrestore" data-id="'+esc(m.id)+'">Remettre '+esc(m.name)+'</button>'}).join("")+'</div></div>':'';
-  var addForm='<div class="add"><input id="newm" placeholder="Ajouter une machine ou un exercice" aria-label="Nom du nouvel exercice" maxlength="60"><select id="newmk" aria-label="Type de mesure"><option value="w">Charge et reps</option><option value="t">Durée</option><option value="d">Durée et distance</option></select><select id="newmu" aria-label="Muscle principal">'+opts+'</select><button class="btn ghost" data-a="add">Ajouter</button></div>'+hidHtml;
+  var act=S.machines.filter(function(m){return !m.hidden});
   if(!meta){
-    var pl=planned(),td=today();
+    var ps=S.progs||[],td=today();
+    if(!act.length&&!ps.length&&!S.sessions.length){
+      return hero+'<section class="card" aria-label="Bienvenue"><h2>Bienvenue sur Reps</h2>'+
+        '<p class="cap" style="margin:0">Pars de zéro : crée tes machines avec les muscles travaillés, compose tes séances, puis lance-toi.</p>'+
+        '<button class="btn" data-a="mnew">1 · Créer ma première machine</button>'+
+        '<button class="btn ghost" data-a="pgropen">2 · Composer mes séances</button></section>';
+    }
+    var pl=planned();
+    var tpls=ps.map(function(p){return [p.id,p.name]}).concat([["all","Séance libre"]]);
+    if(!tpls.some(function(t){return t[0]===nw.tpl}))nw.tpl="all";
     var start='<section class="card" aria-label="Nouvelle séance"><h2>Nouvelle séance</h2>'+
-      '<button class="btn" data-a="startplan">Séance prévue : '+esc(PROGN[pl.k])+' ('+esc(pl.when)+')</button>'+
-      '<span class="label" style="margin-top:6px">Ou une autre séance</span>'+
-      '<div class="pills" role="group" aria-label="Type de séance">'+TPL.map(function(k){return '<button class="pill" data-a="tpl" data-k="'+k+'" aria-pressed="'+(nw.tpl===k)+'">'+esc(PROGN[k])+'</button>'}).join("")+'</div>'+
-      '<label class="fld"><span>Nom de la séance (par défaut : '+esc(PROGN[nw.tpl]||'Séance')+')</span><input id="nwname" data-f="nwn" placeholder="'+esc(PROGN[nw.tpl]||'Séance')+'" maxlength="40" value="'+esc(nw.name)+'" autocomplete="off"></label>'+
+      (pl?'<button class="btn" data-a="startplan">Séance suivante : '+esc(pl.name)+'</button><span class="label" style="margin-top:6px">Ou une autre séance</span>':'')+
+      '<div class="pills" role="group" aria-label="Type de séance">'+tpls.map(function(t){return '<button class="pill" data-a="tpl" data-k="'+esc(t[0])+'" aria-pressed="'+(nw.tpl===t[0])+'">'+esc(t[1])+'</button>'}).join("")+'</div>'+
+      '<label class="fld"><span>Nom de la séance (par défaut : '+esc(pname(nw.tpl))+')</span><input id="nwname" data-f="nwn" placeholder="'+esc(pname(nw.tpl))+'" maxlength="40" value="'+esc(nw.name)+'" autocomplete="off"></label>'+
       '<label class="fld"><span>Date (modifiable)</span><input type="date" id="nwd" data-f="nwd" max="'+td+'" value="'+esc(nw.d||td)+'"></label>'+
-      '<button class="btn ghost" data-a="startother">Commencer cette séance</button></section>';
+      '<button class="btn'+(pl?' ghost':'')+'" data-a="startother">Commencer cette séance</button></section>'+
+      '<div class="two"><button class="btn ghost" data-a="pgropen">Mes séances</button><button class="btn ghost" data-a="mgropen">Mes machines</button></div>';
     return hero+start+(S.sessions.length===0?'<div class="empty">Aucune séance enregistrée pour l\'instant.</div>':'');
   }
   var td2=today();
@@ -762,7 +780,7 @@ function seanceHtml(){
     '<label class="fld"><span>Date de la séance</span><input type="date" id="sdt" data-f="mdate" max="'+td2+'" value="'+esc(meta.d)+'"></label>'+
     (meta.d!==td2?'<div class="xpline"><span>Cette séance sera enregistrée au '+esc(dlabel(meta.d))+'.</span></div>':'')+
     (discardAsk?'<div class="xpline"><span>Les séries saisies seront perdues.</span></div><button class="btn" style="background:#b3261e;color:#fff" data-a="mdiscardyes">Confirmer l\'annulation</button><button class="btn ghost" data-a="mdiscardno">Continuer la séance</button>':'<button class="lk" data-a="mdiscard">Annuler cette séance</button>')+'</section>';
-  var pills=['mon','tue','thu','wed','long'].map(function(k){return '<button class="pill" data-a="prog" data-p="'+k+'" aria-pressed="'+(prog===k)+'">'+esc(PROGN[k])+'</button>'}).join("")+
+  var pills=(S.progs||[]).map(function(p){return '<button class="pill" data-a="prog" data-p="'+esc(p.id)+'" aria-pressed="'+(prog===p.id)+'">'+esc(p.name)+'</button>'}).join("")+
     '<button class="pill" data-a="prog" data-p="all" aria-pressed="'+(prog==="all")+'">Libre</button>';
   var ms=S.machines.filter(function(m){return !m.hidden&&inSel(m.id)});
   var list=ms.map(function(m){
@@ -1115,7 +1133,7 @@ function pickHtml(){
     '<div class="sheet-top"><h2>Machines</h2><button class="x" data-a="pkclose" aria-label="Fermer">×</button></div>'+
     '<p class="cap" style="margin:0">Coche les machines à faire pendant cette séance.</p>'+
     '<div class="list">'+rows+'</div>'+
-    '<div class="card"><span class="label">Créer une nouvelle machine</span><div class="add"><input id="newm" placeholder="Nom de la machine" aria-label="Nom du nouvel exercice" maxlength="60"><select id="newmk" aria-label="Type de mesure"><option value="w">Charge et reps</option><option value="t">Durée</option><option value="d">Durée et distance</option></select><select id="newmu" aria-label="Muscle principal">'+opts+'</select><button class="btn ghost" data-a="add">Créer et ajouter</button></div></div>'+
+    '<button class="btn ghost" data-a="mnew">Créer une nouvelle machine</button>'+
     hidHtml+
     '<button class="btn" data-a="pkclose">Terminé</button></div></div>';
 }
@@ -1164,7 +1182,87 @@ function goalPromptHtml(){
     '<p class="cap" style="margin:0">Choix définitif pour la semaine. Objectif atteint : bonus d\'XP versé lundi (50 XP et plus selon ta série).</p>'+
     '<button class="btn" data-a="gok">Valider : '+g+' séance'+(g>1?'s':'')+'</button><button class="lk" data-a="glater">Plus tard</button></div></div>';
 }
-function popHtml(){if(popG)return goalPromptHtml();if(popS)return stkHtml();if(popL)return lvlHtml();return chartId?chartHtml():det?detailHtml():(pk&&S.draft.meta)?pickHtml():popA?bigPop("Succès",succesHtml(),"achclose"):popB?bigPop("Sauvegarde et partage",backupHtml(),"bkclose"):""}
+function popHtml(){
+  if(popN)return nameHtml();
+  var ed=(popM?mgrHtml():"")+(popP&&!pEd?pgrHtml():"")+(pEd?pedHtml():"")+(mEd?medHtml():"");
+  if(ed)return ed;
+  return popHtml0();
+}
+
+function edPop(title,body,close){
+  return '<div class="sheet-bg" data-a="edbg"><div class="sheet" role="dialog" aria-label="'+esc(title)+'"><div class="sheet-top"><h2>'+esc(title)+'</h2><button class="x" data-a="'+close+'" aria-label="Fermer">×</button></div>'+body+'</div></div>';
+}
+function muLine(m){var nn=muNames(m.id),mus=nn.p.concat(nn.s);return mus.length?'<span class="mus">'+esc(mus.join(" · "))+'</span>':'<span class="mus" style="color:var(--mute)">Aucun muscle choisi</span>'}
+function mgrHtml(){
+  var act=S.machines.filter(function(m){return !m.hidden});
+  var rows=act.map(function(m){return '<button class="pickrow" data-a="medit" data-id="'+esc(m.id)+'"><span class="nm">'+esc(m.name)+muLine(m)+'</span></button>'}).join("");
+  var hid=S.machines.filter(function(m){return m.hidden});
+  var hidHtml=hid.length?'<div><span class="label">Machines supprimées (historique conservé)</span><div class="chips" style="margin-top:6px">'+hid.map(function(m){return '<button class="chip" data-a="mrestore" data-id="'+esc(m.id)+'">Remettre '+esc(m.name)+'</button>'}).join("")+'</div></div>':'';
+  return edPop("Mes machines",(rows?'<div class="list">'+rows+'</div>':'<div class="empty">Aucune machine pour l\'instant.</div>')+'<button class="btn" data-a="mnew">+ Nouvelle machine</button>'+hidHtml,"mgrclose");
+}
+function medHtml(){
+  var e=mEd,isNew=!e.id,kinds=[["w","Charge et reps"],["t","Durée"],["d","Durée et distance"]];
+  var chips=Object.keys(NAME).map(function(k){var st=e.mu[k]==="p"?"p":e.mu[k]==="s"?"s":"";return '<button class="mchip '+st+'" data-a="mmu" data-k="'+k+'" aria-label="'+esc(NAME[k])+(st==="p"?', principal':st==="s"?', secondaire':'')+'">'+esc(NAME[k])+(st==="p"?' ●':st==="s"?' ◐':'')+'</button>'}).join("");
+  var kindHtml=isNew?'<span class="label">Type de mesure</span><div class="pills" role="group" aria-label="Type">'+kinds.map(function(k){return '<button class="pill" data-a="mkind" data-k="'+k[0]+'" aria-pressed="'+(e.kind===k[0])+'">'+k[1]+'</button>'}).join("")+'</div>':'';
+  var del=!isNew?(mdelAsk?'<div class="xpline"><span>La machine disparaît des listes, ton historique est conservé.</span></div><button class="btn" style="background:#b3261e;color:#fff" data-a="mdelyes">Confirmer la suppression</button><button class="btn ghost" data-a="mdelno">Garder</button>':'<button class="lk" data-a="mdelask">Supprimer cette machine</button>'):'';
+  return edPop(isNew?"Nouvelle machine":"Modifier la machine",
+    '<label class="fld"><span>Nom</span><input id="medname" maxlength="60" value="'+esc(e.name)+'" placeholder="ex. Leg press" autocomplete="off"></label>'+kindHtml+
+    '<span class="label">Muscles travaillés</span><p class="cap" style="margin:0">Touche une fois : principal ●. Deux fois : secondaire ◐. Trois fois : retiré.</p><div class="mchips">'+chips+'</div>'+
+    '<button class="btn" data-a="msave">Enregistrer</button>'+del,"mclose");
+}
+function pgrHtml(){
+  var ps=S.progs||[];
+  var rows=ps.map(function(p){return '<button class="pickrow" data-a="pedit" data-id="'+esc(p.id)+'"><span class="nm">'+esc(p.name)+'<span class="mus" style="color:var(--mute)">'+p.machines.filter(function(id){var m=mach(id);return m&&!m.hidden}).length+' machine(s)</span></span></button>'}).join("");
+  return edPop("Mes séances",(rows?'<div class="list">'+rows+'</div>':'<div class="empty">Aucune séance pour l\'instant. Crée Haut, Bas, Full body ou ce que tu veux.</div>')+'<button class="btn" data-a="pnew">+ Nouvelle séance</button>',"pgrclose");
+}
+function pedHtml(){
+  var e=pEd,isNew=!e.id;
+  var rows=S.machines.filter(function(m){return !m.hidden}).map(function(m){var on=e.machines.indexOf(m.id)>=0;return '<button class="pickrow" role="checkbox" aria-checked="'+on+'" data-a="ptogm" data-id="'+esc(m.id)+'"><span class="box">'+(on?'✓':'')+'</span><span class="nm">'+esc(m.name)+muLine(m)+'</span></button>'}).join("");
+  var del=!isNew?(pdelAsk?'<div class="xpline"><span>La séance disparaît, ton historique est conservé.</span></div><button class="btn" style="background:#b3261e;color:#fff" data-a="pdelyes">Confirmer la suppression</button><button class="btn ghost" data-a="pdelno">Garder</button>':'<button class="lk" data-a="pdelask">Supprimer cette séance</button>'):'';
+  return edPop(isNew?"Nouvelle séance":"Modifier la séance",
+    '<label class="fld"><span>Nom de la séance</span><input id="pedname" maxlength="40" value="'+esc(e.name)+'" placeholder="ex. Haut, Bas, Full body" autocomplete="off"></label>'+
+    '<span class="label">Machines de cette séance</span>'+(rows?'<div class="list">'+rows+'</div>':'<div class="empty">Crée d\'abord une machine.</div>')+
+    '<button class="btn ghost" data-a="mnew">Créer une nouvelle machine</button><button class="btn" data-a="psave">Enregistrer</button>'+del,"pclose");
+}
+function nameHtml(){
+  var first=S.name===undefined;
+  return '<div class="mini-bg" data-a="nbg"><div class="mini" role="dialog" aria-label="Pseudo"><div class="sheet-top"><h2>'+(first?'Bienvenue !':'Ton pseudo')+'</h2></div>'+
+    '<p class="cap" style="margin:0">Comment veux-tu qu\'on t\'appelle ? Il s\'affichera sous le logo.</p>'+
+    '<input id="pseudo" class="inp" maxlength="20" value="'+esc(nameDraft||S.name||"")+'" placeholder="Ton pseudo" autocomplete="off" autocapitalize="words" style="min-height:52px;font:inherit;font-size:17px;font-weight:500;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)">'+
+    '<button class="btn" data-a="nsave">Valider</button><button class="lk" data-a="nskip">'+(first?'Passer':'Annuler')+'</button></div></div>';
+}
+function needGoal(){return typeof (S.goals||{})[wk(today())]!=="number"&&((S.progs||[]).length||S.sessions.length)}
+function syncEd(){
+  var e;
+  if(mEd&&(e=document.getElementById("medname")))mEd.name=e.value.slice(0,60);
+  if(pEd&&(e=document.getElementById("pedname")))pEd.name=e.value.slice(0,40);
+  if(popN&&(e=document.getElementById("pseudo")))nameDraft=e.value.slice(0,20);
+}
+function edClose(){if(mEd){mEd=null;mdelAsk=false}else if(pEd){pEd=null;pdelAsk=false}else if(popP)popP=false;else if(popM)popM=false;else return false;return true}
+function afterName(){popN=false;nameDraft="";if(needGoal())popG=true}
+function saveMachine(){
+  var e=mEd,name=(e.name||"").trim();
+  if(!name){toast("Donne un nom à la machine");return}
+  var mu={};Object.keys(e.mu).forEach(function(k){if(e.mu[k]==="p"||e.mu[k]==="s")mu[k]=e.mu[k]});
+  if(e.id){var m=mach(e.id);if(m){m.name=name;m.mu=mu}}
+  else{
+    var m2={id:"m"+Date.now(),name:name,w:e.kind==="w"?10:0,step:5,mu:mu};
+    if(e.kind!=="w")m2.kind=e.kind;
+    S.machines.push(m2);
+    if(S.draft.meta)selIds().push(m2.id);
+    if(pEd&&pEd.machines.indexOf(m2.id)<0)pEd.machines.push(m2.id);
+  }
+  mEd=null;mdelAsk=false;save();render();toast("Machine enregistrée");
+}
+function saveProg(){
+  var e=pEd,name=(e.name||"").trim();
+  if(!name){toast("Donne un nom à la séance");return}
+  S.progs=S.progs||[];
+  if(e.id){var p=progById(e.id);if(p){p.name=name;p.machines=e.machines.slice()}}
+  else S.progs.push({id:"p"+Date.now(),name:name,machines:e.machines.slice()});
+  pEd=null;pdelAsk=false;save();render();toast("Séance enregistrée");
+}
+function popHtml0(){if(popG)return goalPromptHtml();if(popS)return stkHtml();if(popL)return lvlHtml();return chartId?chartHtml():det?detailHtml():(pk&&S.draft.meta)?pickHtml():popA?bigPop("Succès",succesHtml(),"achclose"):popB?bigPop("Sauvegarde et partage",backupHtml(),"bkclose"):""}
 function sheetHtml(){
   if(!sh)return "";
   var m=mach(sh.id),kind=kindOf(sh.id),b=bestSet(sh.id,true),ls=lastSession(sh.id),t=target(sh.id),nn=muNames(sh.id);
@@ -1198,6 +1296,7 @@ function sheetHtml(){
     '<button class="lk" data-a="chart" data-id="'+esc(sh.id)+'">Voir les courbes de cet exercice</button>'+
     '<div><span class="label">Ressenti de l\'exercice</span><div class="rate" style="margin-top:6px" role="group" aria-label="Note de 1 à 5">'+[1,2,3,4,5].map(function(n){return '<button data-a="rate" data-v="'+n+'" aria-pressed="'+(S.draft.rates[sh.id]===n)+'">'+n+'</button>'}).join("")+'</div><div class="xpline" style="margin-top:6px"><span>'+(S.draft.rates[sh.id]?RL[S.draft.rates[sh.id]]:"1 = très dur, 5 = excellent")+'</span></div></div>'+
     '<button class="btn" data-a="terminer"'+(sh.rows.length?'':' disabled')+'>Terminer l\'exercice</button>'+
+    '<button class="lk" data-a="medit" data-id="'+esc(sh.id)+'">Modifier la machine (nom, muscles)</button>'+
     delBlock+
     '</div></div>';
 }
@@ -1220,7 +1319,32 @@ function render(){
 }
 function act(el){
   var a=el.getAttribute("data-a");
-  if(a==="tab"){tab=el.getAttribute("data-t");render()}
+  syncEd();
+  if(a==="mgropen"){popM=true;render()}
+  else if(a==="mgrclose"){popM=false;render()}
+  else if(a==="pgropen"){popP=true;render()}
+  else if(a==="pgrclose"){popP=false;render()}
+  else if(a==="mnew"){pk=false;mEd={id:null,name:"",kind:"w",mu:{}};mdelAsk=false;render()}
+  else if(a==="medit"){var em=mach(el.getAttribute("data-id"));if(em){var cp={};var mm=muOf(em.id);Object.keys(mm).forEach(function(k){cp[k]=mm[k]});mEd={id:em.id,name:em.name,kind:kindOf(em.id),mu:cp};mdelAsk=false;render()}}
+  else if(a==="mmu"){var k=el.getAttribute("data-k"),c=mEd.mu[k];if(!c)mEd.mu[k]="p";else if(c==="p")mEd.mu[k]="s";else delete mEd.mu[k];render()}
+  else if(a==="mkind"){mEd.kind=el.getAttribute("data-k");render()}
+  else if(a==="msave")saveMachine();
+  else if(a==="mclose"){mEd=null;mdelAsk=false;render()}
+  else if(a==="mdelask"){mdelAsk=true;render()}
+  else if(a==="mdelno"){mdelAsk=false;render()}
+  else if(a==="mdelyes"){var dm=mach(mEd.id);if(dm){dm.hidden=true;delete S.draft.wip[dm.id];if(sh&&sh.id===dm.id)sh=null}mEd=null;mdelAsk=false;save();render();toast("Machine supprimée, historique conservé")}
+  else if(a==="pnew"){pEd={id:null,name:"",machines:[]};pdelAsk=false;render()}
+  else if(a==="pedit"){var ep=progById(el.getAttribute("data-id"));if(ep){pEd={id:ep.id,name:ep.name,machines:ep.machines.slice()};pdelAsk=false;render()}}
+  else if(a==="ptogm"){var id2=el.getAttribute("data-id"),ix=pEd.machines.indexOf(id2);if(ix>=0)pEd.machines.splice(ix,1);else pEd.machines.push(id2);render()}
+  else if(a==="psave")saveProg();
+  else if(a==="pclose"){pEd=null;pdelAsk=false;render()}
+  else if(a==="pdelask"){pdelAsk=true;render()}
+  else if(a==="pdelno"){pdelAsk=false;render()}
+  else if(a==="pdelyes"){S.progs=(S.progs||[]).filter(function(p){return p.id!==pEd.id});if(S.draft.meta&&S.draft.meta.prog===pEd.id)S.draft.meta.prog="all";pEd=null;pdelAsk=false;save();render();toast("Séance supprimée")}
+  else if(a==="nopen"){popN=true;render()}
+  else if(a==="nsave"){S.name=nameDraft.trim();afterName();save();render()}
+  else if(a==="nskip"){if(S.name===undefined)S.name="";afterName();save();render()}
+  else if(a==="tab"){tab=el.getAttribute("data-t");render()}
   else if(a==="prog"){setProg(el.getAttribute("data-p"));save();render()}
   else if(a==="stkopen"){popS=true;stkSel=null;render()}
   else if(a==="stkclose"){popS=false;render()}
@@ -1256,7 +1380,7 @@ function act(el){
   else if(a==="del"){sh.rows.splice(+el.getAttribute("data-i"),1);touch();render()}
   else if(a==="rate"){var v=+el.getAttribute("data-v");if(S.draft.rates[sh.id]===v)delete S.draft.rates[sh.id];else S.draft.rates[sh.id]=v;save();render()}
   else if(a==="addrow")addRow();
-  else if(a==="startplan"){startSession(planned().k,null,null)}
+  else if(a==="startplan"){var pp=planned();if(pp)startSession(pp.id,null,null)}
   else if(a==="tpl"){nw.tpl=el.getAttribute("data-k");render()}
   else if(a==="startother"){var ne=document.getElementById("nwname"),de=document.getElementById("nwd");startSession(nw.tpl,(ne?ne.value:nw.name).trim(),de&&de.value?de.value:null)}
   else if(a==="mdiscard"){discardAsk=true;render()}
@@ -1296,7 +1420,8 @@ function act(el){
 }
 document.addEventListener("click",function(e){
   var el=e.target.closest("[data-a]");if(!el)return;
-  if(el.getAttribute("data-a")==="gbg")return;
+  if(el.getAttribute("data-a")==="gbg"||el.getAttribute("data-a")==="nbg")return;
+  if(el.getAttribute("data-a")==="edbg"){if(e.target===el){edClose();render()}return}
   if(el.getAttribute("data-a")==="sbg"){if(e.target===el){popS=false;render()}return}
   if(el.getAttribute("data-a")==="lbg"){if(e.target===el){popL=false;render()}return}
   if(el.getAttribute("data-a")==="xbg"){if(e.target===el){popA=false;popB=false;render()}return}
@@ -1338,7 +1463,7 @@ document.addEventListener("change",function(e){
 document.addEventListener("keydown",function(e){
   var t=e.target;
   if((e.key==="Enter"||e.key===" ")&&t.classList&&(t.classList.contains("mu")||t.classList.contains("pr-card"))){e.preventDefault();act(t)}
-  if(e.key==="Escape"){if(chartId)chartId=null;else if(det)det=null;else if(popG)popG=false;else if(pk)pk=false;else if(popS)popS=false;else if(popL)popL=false;else if(popA||popB){popA=false;popB=false}else if(sh)sh=null;else return;render()}
+  if(e.key==="Escape"){if(chartId)chartId=null;else if(det)det=null;else if(popG)popG=false;else if(mEd||pEd||popP||popM){edClose()}else if(pk)pk=false;else if(popS)popS=false;else if(popL)popL=false;else if(popA||popB){popA=false;popB=false}else if(sh)sh=null;else return;render()}
 });
 render();
 if("serviceWorker" in navigator){
