@@ -227,6 +227,13 @@ nav button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
 .setrow .del{width:36px;height:48px;color:var(--mute);font-size:20px}
 .setsh{display:grid;grid-template-columns:20px 1fr 1fr 36px;gap:8px}
 .setsh span{text-align:center}
+.ttl{display:flex;align-items:center;gap:8px;min-width:0}
+.tbtn{display:flex;gap:8px;flex-shrink:0}
+.pen{min-width:32px;min-height:32px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--mute);display:grid;place-items:center;flex-shrink:0}
+.x{display:grid;place-items:center}
+.endrow{display:flex;gap:8px}
+.endrow .btn{flex:1}
+.trash{min-width:56px;min-height:48px;border-radius:8px;background:color-mix(in srgb,#d93a3a 14%,transparent);border:1px solid color-mix(in srgb,#d93a3a 40%,transparent);color:#d93a3a;display:grid;place-items:center}
 .x{min-width:44px;min-height:44px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-size:20px}
 .facts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .facts div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px;min-width:0}
@@ -503,7 +510,7 @@ function adopt(d){
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 21:17";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 21:27";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -1320,9 +1327,13 @@ function sheetHtml(){
       '<button class="del" data-a="del" data-i="'+i+'" aria-label="Supprimer la série '+n+'">×</button></div>';
   }).join("");
   var hdr=kind==="w"?'<span>Charge (kg)</span><span>Reps</span>':kind==="t"?'<span>Durée (min:s)</span>':'<span>Durée (min:s)</span><span>Distance (km)</span>';
-  var delBlock='<button class="lk" data-a="unsel">Retirer de la séance en cours</button>';
+  var nS=S.draft.sets.filter(function(x){return x.m===sh.id}).length;
+  var delBlock=sh.del?'<div class="xpline"><span>Retirer cet exercice de la séance ?'+(nS?' Les '+nS+' série'+(nS>1?'s':'')+' déjà validée'+(nS>1?'s':'')+' seront supprimée'+(nS>1?'s':'')+'.':'')+' La machine et son historique restent.</span></div><button class="btn" style="background:#b3261e;color:#fff" data-a="unsely">Oui, retirer</button><button class="btn ghost" data-a="mcancel">Garder</button>':'';
+  var IC_PEN='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>';
+  var IC_CH='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18"/><path d="M5 16l4-5 4 3 6-8"/></svg>';
+  var IC_TR='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/></svg>';
   return '<div class="sheet-bg" data-a="bg"><div class="sheet" role="dialog" aria-label="'+esc(m.name)+'">'+
-    '<div class="sheet-top"><h2>'+esc(m.name)+'</h2><button class="x" data-a="close" aria-label="Fermer">×</button></div>'+
+    '<div class="sheet-top"><div class="ttl"><h2>'+esc(m.name)+'</h2><button class="pen" data-a="medit" data-id="'+esc(sh.id)+'" aria-label="Modifier la machine (nom, muscles)">'+IC_PEN+'</button></div><div class="tbtn"><button class="x" data-a="chart" data-id="'+esc(sh.id)+'" aria-label="Voir les courbes de cet exercice">'+IC_CH+'</button><button class="x" data-a="close" aria-label="Fermer">×</button></div></div>'+
     '<div class="stage">'+figs(machLevels(sh.id),false,null)+mtxt+'</div>'+
     '<div class="facts"><div><span class="label">Dernière</span><span class="num">'+esc(last)+'</span></div>'+
     '<div><span class="label">Record</span><span class="num">'+esc(rec)+'</span></div>'+
@@ -1332,10 +1343,8 @@ function sheetHtml(){
     '<div class="setsh label'+(kind==="t"?' one':'')+'"><span>#</span>'+hdr+'<span></span></div>'+
     rows+
     '<button class="btn ghost" data-a="addrow">+ Ajouter une série</button>'+
-    '<button class="lk" data-a="chart" data-id="'+esc(sh.id)+'">Voir les courbes de cet exercice</button>'+
     '<div><span class="label">Ressenti de l\'exercice</span><div class="rate" style="margin-top:6px" role="group" aria-label="Note de 1 à 5">'+[1,2,3,4,5].map(function(n){return '<button data-a="rate" data-v="'+n+'" aria-pressed="'+(S.draft.rates[sh.id]===n)+'">'+n+'</button>'}).join("")+'</div><div class="xpline" style="margin-top:6px"><span>'+(S.draft.rates[sh.id]?RL[S.draft.rates[sh.id]]:"1 = très dur, 5 = excellent")+'</span></div></div>'+
-    '<button class="btn" data-a="terminer"'+(sh.rows.length?'':' disabled')+'>Terminer l\'exercice</button>'+
-    '<button class="lk" data-a="medit" data-id="'+esc(sh.id)+'">Modifier la machine (nom, muscles)</button>'+
+    '<div class="endrow"><button class="btn" data-a="terminer"'+(sh.rows.length?'':' disabled')+'>Terminer l\'exercice</button><button class="trash" data-a="unsel" aria-label="Retirer cet exercice de la séance">'+IC_TR+'</button></div>'+
     delBlock+
     '</div></div>';
 }
@@ -1442,7 +1451,12 @@ function act(el){
     S=adopt(JSON.parse(JSON.stringify(bk.pending)));bk.pending=null;bk.msg="Sauvegarde importée. L'ancienne version est gardée en copie locale.";
     sh=null;det=null;chartId=null;save();render();toast("Sauvegarde importée");
   }
-  else if(a==="unsel"){var uid=sh.id;if(S.draft.sets.some(function(x){return x.m===uid}))toast("Cet exercice a déjà des séries validées dans la séance");else{var sl=selIds(),ui=sl.indexOf(uid);if(ui>=0)sl.splice(ui,1);delete S.draft.wip[uid];sh=null;save();render();toast("Exercice retiré de la séance")}}
+  else if(a==="unsel"){sh.del=true;render()}
+  else if(a==="unsely"){var uid=sh.id,rm=S.draft.sets.filter(function(x){return x.m===uid});
+    rm.forEach(function(x){S.draft.xp=Math.max(0,(S.draft.xp||0)-10-(x.pr?25:0));if(x.pr)S.prs=Math.max(0,S.prs-1)});
+    S.draft.sets=S.draft.sets.filter(function(x){return x.m!==uid});
+    var sl=selIds(),ui=sl.indexOf(uid);if(ui>=0)sl.splice(ui,1);
+    delete S.draft.wip[uid];if(S.draft.rates)delete S.draft.rates[uid];sh=null;save();render();toast("Exercice retiré de la séance")}
   else if(a==="mcancel"){sh.del=false;render()}
   else if(a==="mconfirm"){var hm=mach(sh.id);if(hm)hm.hidden=true;delete S.draft.wip[sh.id];sh=null;save();render();toast("Machine supprimée, historique conservé")}
   else if(a==="mrestore"){var rm=mach(el.getAttribute("data-id"));if(rm){rm.hidden=false;save();render()}}
