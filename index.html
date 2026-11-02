@@ -415,7 +415,11 @@ function ensureSeed(s){
   }
   s.seedv=3;seededNow=true;
 }
-function afterLoad(){if(seededNow){seededNow=false;save()}}
+function afterLoad(){
+  if(seededNow){seededNow=false;save()}
+  var b=bonusInfo().total;
+  if(b>(S.bsee||0)){var d=b-(S.bsee||0);S.bsee=b;save();toast("Semaine validée : +"+d+" XP de bonus",true)}
+}
 
 /* ---------- persistence ---------- */
 function lsLoad(){try{var r=localStorage.getItem(LS);return r?JSON.parse(r):null}catch(e){return null}}
@@ -454,13 +458,14 @@ function adopt(d){
   if(typeof d.prs==="number")s.prs=d.prs;
   if(typeof d.goal==="number"&&d.goal>=1&&d.goal<=7)s.goal=d.goal;
   if(d.goals&&typeof d.goals==='object'&&!Array.isArray(d.goals))s.goals=d.goals;
+  if(typeof d.bsee==='number')s.bsee=d.bsee;
   if(Array.isArray(d.off))s.off=d.off.filter(function(x){return typeof x==="string"});
   if(d.seedv)s.seedv=d.seedv;else if(d.seeded)s.seedv=1;
   ensureSeed(s);renameHaut(s);
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 17:42";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 17:47";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -533,7 +538,7 @@ function target(id){
   if(ok&&lr&&lr<=2)return {kind:"w",w:w,note:"Dernier ressenti "+lr+"/5 : garde la même charge"};
   return ok?{kind:"w",w:w+m.step,note:"Toutes les séries à 10 reps ou plus"+(lr?" · ressenti "+lr+"/5":"")}:{kind:"w",w:w,note:"Valide 10 reps sur chaque série"+(lr?" · dernier ressenti "+lr+"/5":"")};
 }
-function totalXp(){var x=S.draft.xp||0;S.sessions.forEach(function(s){x+=s.xp||0});return x}
+function totalXp(){var x=S.draft.xp||0;S.sessions.forEach(function(s){x+=s.xp||0});return x+bonusInfo().total}
 function level(xp){var L=Math.floor(Math.sqrt(xp/40))+1;return {L:L,lo:40*(L-1)*(L-1),hi:40*L*L}}
 function wk(d){var x=new Date(d+"T12:00:00");x.setDate(x.getDate()-((x.getDay()+6)%7));return x.toLocaleDateString("sv")}
 function prevWk(k){var x=new Date(k+"T12:00:00");x.setDate(x.getDate()-7);return x.toLocaleDateString("sv")}
@@ -554,13 +559,22 @@ function weeksInfo(){
     else if(!jm[mo]){jm[mo]=k;st="joker"}
     else{st="miss";run=0}
     if(run>out.best)out.best=run;
-    out.weeks.push({k:k,n:n,st:st});
+    out.weeks.push({k:k,n:n,st:st,run:run});
     k=addDays(k,7);
   }
   out.streak=run;out.jokerUsed=jm[cur.slice(0,7)]||null;
   return out;
 }
 function streak(){return weeksInfo().streak}
+function weekBonus(run){return 50+10*Math.min(Math.max(run-1,0),5)}
+function bonusInfo(){
+  var W=weeksInfo(),cur=wk(today()),tot=0,n=0,next=0;
+  W.weeks.forEach(function(w){
+    if(w.st!=="ok")return;
+    if(w.k<cur){tot+=weekBonus(w.run);n++}else next=weekBonus(w.run);
+  });
+  return {total:tot,count:n,next:next};
+}
 function totalSets(){var n=S.draft.sets.length;S.sessions.forEach(function(s){n+=s.sets.length});return n}
 function badges(){
   var c=weekCounts(),st=streak(),full=Object.keys(c).some(function(k){return c[k]>=GOAL_WEEK});
@@ -1113,7 +1127,7 @@ function lvlHtml(){
 }
 var stkSel=null;
 function stkHtml(){
-  var W=weeksInfo(),cur=wk(today()),sel=stkSel||cur,isOff=(S.off||[]).indexOf(sel)>=0,gs=weekGoal(sel),custom=!!(S.goals&&typeof S.goals[sel]==="number");
+  var W=weeksInfo(),B=bonusInfo(),cur=wk(today()),sel=stkSel||cur,isOff=(S.off||[]).indexOf(sel)>=0,gs=weekGoal(sel),custom=!!(S.goals&&typeof S.goals[sel]==="number");
   var fm=function(k){return k.slice(8)+"/"+k.slice(5,7)};
   var last=W.weeks.slice(-8).map(function(w){
     var lab={ok:"✓",joker:"J",off:"off",miss:"✗",cur:"…"}[w.st];
@@ -1127,6 +1141,7 @@ function stkHtml(){
     '<span class="label">Objectif, semaine du '+fm(sel)+(custom?'':' (par défaut)')+'</span><div class="pills" role="group" aria-label="Objectif de la semaine">'+[1,2,3,4].map(function(n){return '<button class="pill" data-a="wgoal" data-n="'+n+'" aria-pressed="'+(gs===n)+'">'+n+'</button>'}).join("")+'</div>'+
     '<button class="btn ghost" data-a="woff">'+(isOff?'Reprendre : cette semaine compte':(sel===cur?'Cette semaine':'Semaine du '+fm(sel))+' off (vacances, maladie)')+'</button>'+
     '<span class="label">Objectif par défaut</span><div class="pills" role="group" aria-label="Objectif par défaut">'+[1,2,3,4].map(function(n){return '<button class="pill" data-a="goal" data-n="'+n+'" aria-pressed="'+(goalN()===n)+'">'+n+'</button>'}).join("")+'</div>'+
+    '<div class="xpline"><span>Bonus de fin de semaine : <b>+'+B.total+' XP</b> gagnés'+(B.next?' · <b>+'+B.next+' XP</b> versés lundi si tu gardes l\'objectif de cette semaine':'')+'</span></div>'+
     '<p class="cap" style="margin:0">'+esc(jok)+' Les jours de repos ne cassent rien : seule une semaine sous son objectif compte. Une semaine off ne casse pas la série et ne la fait pas avancer.</p></div></div>';
 }
 function popHtml(){if(popS)return stkHtml();if(popL)return lvlHtml();return chartId?chartHtml():det?detailHtml():(pk&&S.draft.meta)?pickHtml():popA?bigPop("Succès",succesHtml(),"achclose"):popB?bigPop("Sauvegarde et partage",backupHtml(),"bkclose"):""}
