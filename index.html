@@ -517,7 +517,7 @@ function adopt(d){
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"03/11 00:06";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"03/11 00:10";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -1033,7 +1033,7 @@ function detailHtml(){
     }
     var kmT=sets.reduce(function(a,x){return a+(x.k||0)},0);
     var head=vol(sets)>0?'':fmtDur(totT(sets))+(kmT?' · '+fmtKm(kmT)+' km':'');
-    return '<div class="exb"><div class="hd"><div class="hdt"><b>'+esc(nm)+'</b><span class="mnote">'+[head,rt?'ressenti '+rt+'/5':''].filter(Boolean).join(' · ')+'</span></div><button class="x cbtn" data-a="chart" data-id="'+esc(g.id)+'" aria-label="Voir les courbes de '+esc(nm)+'"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18"/><path d="M5 16l4-5 4 3 6-8"/></svg></button></div>'+rows+'</div>';
+    return '<div class="exb"><div class="hd"><div class="hdt"><b>'+esc(nm)+'</b><span class="mnote">'+[head,rt?'ressenti '+rt+'/5':''].filter(Boolean).join(' · ')+'</span></div><button class="x cbtn" data-a="chart" data-id="'+esc(g.id)+'" aria-label="Voir les courbes de '+esc(nm)+'"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18"/><path d="M5 16l4-5 4 3 6-8"/></svg></button></div>'+rows+(det.edit?'<div><span class="label">Ressenti de l\'exercice</span><div class="rate" style="margin-top:6px" role="group" aria-label="Note de 1 à 5">'+[1,2,3,4,5].map(function(n){return '<button data-a="drate" data-id="'+esc(g.id)+'" data-v="'+n+'" aria-pressed="'+(rt===n)+'">'+n+'</button>'}).join("")+'</div></div>':'')+'</div>';
   }).join("");
   var del=det.del?'<button class="btn" style="background:#b3261e;color:#fff" data-a="dconfirm">Confirmer la suppression de la séance</button><button class="btn ghost" data-a="dcancel">Annuler</button>':'<button class="btn danger" data-a="ddel">Supprimer la séance</button>';
   return '<div class="sheet-bg" data-a="pbg"><div class="sheet" role="dialog" aria-label="Détail de la séance">'+
@@ -1448,6 +1448,7 @@ function act(el){
       save();render();
     }}
   else if(a==="del"){sh.rows.splice(+el.getAttribute("data-i"),1);touch();render()}
+  else if(a==="drate"){var rse=det&&sess(det.id);if(rse){var rid=el.getAttribute("data-id"),rv=+el.getAttribute("data-v");if(!rse.rates)rse.rates={};if(rse.rates[rid]===rv)delete rse.rates[rid];else rse.rates[rid]=rv;save();render()}}
   else if(a==="rate"){var v=+el.getAttribute("data-v");if(S.draft.rates[sh.id]===v)delete S.draft.rates[sh.id];else S.draft.rates[sh.id]=v;save();render()}
   else if(a==="addrow")addRow();
   else if(a==="startplan"){var pp=planned();if(pp)startSession(pp.p.id,null,null)}
