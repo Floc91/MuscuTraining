@@ -1,0 +1,17 @@
+Carnet de salle : application installable (PWA)
+
+Contenu : index.html, sw.js, manifest.webmanifest et les icônes.
+Ces fichiers doivent être publiés ensemble, à la racine d'un site en https
+(GitHub Pages, Netlify, Cloudflare Pages...). Ouvrir index.html directement
+depuis le téléphone ne permet pas l'installation.
+
+Installation :
+- iPhone (Safari) : Partager, puis "Sur l'écran d'accueil".
+- Android (Chrome) : menu, puis "Installer l'application".
+
+Données : enregistrées automatiquement sur le téléphone, avec un point de
+restauration par jour pendant 7 jours. Onglet Progrès : sauvegarde en fichier
+JSON, restauration, export texte pour Claude.
+
+Mise à jour : remplacer les fichiers sur l'hébergement. Les données ne sont
+pas touchées, elles sont dans le stockage du navigateur et pas dans les fichiers.
