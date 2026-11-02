@@ -492,7 +492,7 @@ function adopt(d){
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 20:56";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 21:00";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -500,7 +500,7 @@ function adopt(d){
 function e1(w,r){return w*(1+r/30)}
 function kindOf(id){var m=mach(id);return (m&&m.kind)||"w"}
 function isT(x){return x.t!=null}
-function sc(x){return isT(x)?(x.k!=null?x.k:x.t):e1(x.w,x.r)}
+function sc(x){return isT(x)?(x.t||0)+(x.k!=null?x.k/1000:0):e1(x.w,x.r)}
 function pad(n){return n<10?"0"+n:""+n}
 function fmtDur(sec){
   sec=Math.round(sec);
@@ -789,7 +789,7 @@ function seanceHtml(){
       '<div class="pills" role="group" aria-label="Type de séance">'+tpls.map(function(t){return '<button class="pill" data-a="tpl" data-k="'+esc(t[0])+'" aria-pressed="'+(nw.tpl===t[0])+'">'+esc(t[1])+'</button>'}).join("")+'</div>'+
       '<label class="fld"><span>Nom de la séance (par défaut : '+esc(pname(nw.tpl))+')</span><input id="nwname" data-f="nwn" placeholder="'+esc(pname(nw.tpl))+'" maxlength="40" value="'+esc(nw.name)+'" autocomplete="off"></label>'+
       '<label class="fld"><span>Date (modifiable)</span><input type="date" id="nwd" data-f="nwd" max="'+td+'" value="'+esc(nw.d||td)+'"></label>'+
-      '<button class="btn big" data-a="startother">▶ Commencer cette séance</button></section>'+
+      '<button class="btn big" data-a="startother">Commencer cette séance</button></section>'+
       '<div class="two"><button class="btn ghost" data-a="pgropen">Mes séances</button><button class="btn ghost" data-a="mgropen">Mes machines</button></div>';
     return hero+start+(S.sessions.length===0?'<div class="empty">Aucune séance enregistrée pour l\'instant.</div>':'');
   }
