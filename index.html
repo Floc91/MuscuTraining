@@ -178,6 +178,7 @@ nav button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
 .gb{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:52px;font-size:17px}
 .btn{background:var(--accent);color:var(--accent-ink);font-weight:600;border-radius:8px;padding:12px 16px;min-height:48px}
 .btn.big{min-height:56px;font-size:17px;margin-top:6px;box-shadow:0 2px 0 rgba(0,0,0,.18),0 6px 16px color-mix(in srgb,var(--accent) 35%,transparent)}
+.btn.danger{background:color-mix(in srgb,#d93a3a 14%,transparent);border:1px solid color-mix(in srgb,#d93a3a 40%,transparent);color:#d93a3a}
 .btn.ghost{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
 .btn[disabled]{opacity:.45;cursor:default}
 .empty{background:var(--surface);border:1px dashed var(--line);border-radius:8px;padding:16px;color:var(--mute)}
@@ -516,7 +517,7 @@ function adopt(d){
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"03/11 00:02";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"03/11 00:04";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -1034,7 +1035,7 @@ function detailHtml(){
     var head=vol(sets)>0?'':fmtDur(totT(sets))+(kmT?' · '+fmtKm(kmT)+' km':'');
     return '<div class="exb"><div class="hd"><div class="hdt"><b>'+esc(nm)+'</b><span class="mnote">'+[head,rt?'ressenti '+rt+'/5':''].filter(Boolean).join(' · ')+'</span></div><button class="x cbtn" data-a="chart" data-id="'+esc(g.id)+'" aria-label="Voir les courbes de '+esc(nm)+'"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18"/><path d="M5 16l4-5 4 3 6-8"/></svg></button></div>'+rows+'</div>';
   }).join("");
-  var del=det.del?'<button class="btn" style="background:#b3261e;color:#fff" data-a="dconfirm">Confirmer la suppression de la séance</button><button class="btn ghost" data-a="dcancel">Annuler</button>':'<button class="btn ghost" data-a="ddel">Supprimer la séance</button>';
+  var del=det.del?'<button class="btn" style="background:#b3261e;color:#fff" data-a="dconfirm">Confirmer la suppression de la séance</button><button class="btn ghost" data-a="dcancel">Annuler</button>':'<button class="btn danger" data-a="ddel">Supprimer la séance</button>';
   return '<div class="sheet-bg" data-a="pbg"><div class="sheet" role="dialog" aria-label="Détail de la séance">'+
     '<div class="sheet-top"><h2 class="cap1">'+esc(dlabel(se.d))+'</h2><button class="x" data-a="dclose" aria-label="Fermer">×</button></div>'+
     '<div class="xpline"><span>'+se.sets.length+' séries · '+metric(se.sets)+'</span></div>'+
@@ -1042,7 +1043,7 @@ function detailHtml(){
     '<div class="stage">'+figs(lv,false,null)+'<p class="cap">'+(names.length?'<b>Muscles sollicités :</b> '+esc(names.join(", "))+'.':'')+'</p></div>'+
     '<div><label class="label" for="cmdet">Commentaire de la séance</label><textarea id="cmdet" data-f="cm" data-s="'+esc(se.id)+'" rows="4" maxlength="600" placeholder="Sensations, douleurs, fatigue, ce que tu veux retenir">'+esc(se.comment||"")+'</textarea></div>'+
     gs+
-    '<button class="btn ghost" data-a="dedit">'+(det.edit?"Terminer la correction":"Corriger les séries")+'</button>'+del+
+    '<button class="btn'+(det.edit?'':' ghost')+'" data-a="dedit">'+(det.edit?"Terminer la correction":"Corriger les séries")+'</button>'+del+
     '</div></div>';
 }
 function chartSets(id){
