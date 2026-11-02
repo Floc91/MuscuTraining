@@ -159,8 +159,11 @@ nav button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
 .hp{height:16px;border-radius:8px;background:var(--line);overflow:hidden;border:1px solid var(--line)}
 .hp i{display:block;height:100%;background:#d93a3a;border-radius:8px;transition:width .5s}
 .brand{display:flex;flex-direction:column;align-items:flex-start;gap:0}
-.who{background:none;border:0;padding:2px 0;min-height:30px;font-weight:600;font-size:15px;color:var(--mute);text-align:left}
-.who.dim{font-weight:500;opacity:.7}
+.logo{margin:0;line-height:1}
+.prof{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.prow{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.who{background:none;border:0;padding:0;min-height:44px;font-family:var(--f-display);font-weight:700;font-size:34px;line-height:1;color:var(--ink);text-align:left;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.who.dim{font-family:var(--f-body);font-weight:500;font-size:18px;color:var(--mute)}
 .mchips{display:flex;flex-wrap:wrap;gap:8px}
 .mchip{border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 12px;min-height:40px;font-weight:500}
 .mchip.p{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
@@ -315,10 +318,11 @@ var PROG={mon:["press","curl","ext","abd","add","calf","plank","rower"],wed:["ru
   thu:["row","lat","chest","pfly","rfly","chestclose","tri","press","add","abd","calf","rower","plank"]};
 var nw={tpl:"all",name:"",d:null}, discardAsk=false;
 var popN=false,popM=false,popP=false,mEd=null,pEd=null,nameDraft="",pdelAsk=false,mdelAsk=false;
+var DAYS=["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"],DAYS3=["Dim","Lun","Mar","Mer","Jeu","Ven","Sam"],LEGDAYS={p_mon:[1],p_tue:[2],p_wed:[3],p_thu:[4]};
 function legacyProgs(){return [
-  {id:"p_mon",name:"Bas",machines:PROG.mon.slice()},{id:"p_tue",name:"Haut",machines:PROG.tue.slice()},
-  {id:"p_wed",name:"Cardio",machines:PROG.wed.slice()},{id:"p_thu",name:"Full body",machines:PROG.thu.slice()},
-  {id:"p_long",name:"Sortie longue",machines:PROG.long.slice()}]}
+  {id:"p_mon",name:"Bas",days:[1],machines:PROG.mon.slice()},{id:"p_tue",name:"Haut",days:[2],machines:PROG.tue.slice()},
+  {id:"p_wed",name:"Cardio",days:[3],machines:PROG.wed.slice()},{id:"p_thu",name:"Full body",days:[4],machines:PROG.thu.slice()},
+  {id:"p_long",name:"Sortie longue",days:[],machines:PROG.long.slice()}]}
 function progById(id){return (S.progs||[]).filter(function(p){return p.id===id})[0]||null}
 function pname(id){return id==="all"?"Séance libre":(progById(id)||{name:"Séance"}).name}
 
@@ -480,14 +484,14 @@ function adopt(d){
   if(Array.isArray(d.off))s.off=d.off.filter(function(x){return typeof x==="string"});
   if(d.seedv)s.seedv=d.seedv;else if(d.seeded)s.seedv=1;
   if(typeof d.name==="string")s.name=d.name.slice(0,30);
-  if(Array.isArray(d.progs))s.progs=d.progs.filter(function(p){return p&&typeof p.name==="string"&&Array.isArray(p.machines)}).map(function(p){return {id:String(p.id||"p"+Math.random().toString(36).slice(2,8)),name:p.name.slice(0,40),machines:p.machines.filter(function(x){return typeof x==="string"})}});
+  if(Array.isArray(d.progs))s.progs=d.progs.filter(function(p){return p&&typeof p.name==="string"&&Array.isArray(p.machines)}).map(function(p){return {id:String(p.id||"p"+Math.random().toString(36).slice(2,8)),name:p.name.slice(0,40),days:Array.isArray(p.days)?p.days.filter(function(x){return x>=0&&x<=6}):(LEGDAYS[p.id]||[]),machines:p.machines.filter(function(x){return typeof x==="string"})}});
   else if((Array.isArray(d.machines)&&d.machines.length)||(Array.isArray(d.sessions)&&d.sessions.length))s.progs=legacyProgs();
   var exm={};s.machines.forEach(function(m){exm[m.id]=1});s.progs.forEach(function(p){p.machines=p.machines.filter(function(x){return exm[x]})});
   ensureSeed(s);renameHaut(s);
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 18:35";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 20:31";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -696,9 +700,17 @@ function finish(){
 }
 function planned(){
   var ps=S.progs||[];if(!ps.length)return null;
+  var hasDays=ps.some(function(p){return p.days&&p.days.length});
+  if(hasDays){
+    var dow=new Date().getDay(),td=today(),done=S.sessions.filter(function(x){return x.d===td}).map(function(x){return x.name});
+    var cand=ps.filter(function(p){return (p.days||[]).indexOf(dow)>=0});
+    var pick=cand.filter(function(p){return done.indexOf(p.name)<0})[0]||cand[0];
+    if(pick)return {p:pick,mode:"today"};
+    for(var i=1;i<=7;i++){var d=(dow+i)%7,c=ps.filter(function(p){return (p.days||[]).indexOf(d)>=0})[0];if(c)return {p:c,mode:"next",when:i===1?"demain":DAYS[d]}}
+  }
   var idx=null;
-  for(var i=S.sessions.length-1;i>=0&&idx===null;i--){for(var j=0;j<ps.length;j++){if(ps[j].name===S.sessions[i].name){idx=j;break}}}
-  return ps[idx===null?0:(idx+1)%ps.length];
+  for(var a=S.sessions.length-1;a>=0&&idx===null;a--){for(var j=0;j<ps.length;j++){if(ps[j].name===S.sessions[a].name){idx=j;break}}}
+  return {p:ps[idx===null?0:(idx+1)%ps.length],mode:"rot"};
 }
 function progList(k){var p=progById(k);return p?p.machines.slice():[]}
 function selIds(){var m=S.draft.meta;if(!m)return[];if(!Array.isArray(m.sel))m.sel=progList(m.prog||"all");return m.sel}
@@ -738,11 +750,11 @@ function setBw(){
 function headerHtml(){
   var xp=totalXp(),lv=level(xp),pct=Math.round((xp-lv.lo)/(lv.hi-lv.lo)*100);
   var c=weekCounts(),n=c[wk(today())]||0,st=streak(),dots="";
-  var who=S.name?'<button class="who" data-a="nopen" aria-label="Modifier le pseudo">'+esc(S.name)+'</button>':'<button class="who dim" data-a="nopen">+ pseudo</button>';
+  var who=S.name?'<button class="who" data-a="nopen" aria-label="Modifier le pseudo">'+esc(S.name)+'</button>':'<button class="who dim" data-a="nopen">Ajouter un pseudo</button>';
   for(var i=0;i<weekGoal(wk(today()));i++)dots+='<i class="'+(i<n?"on":"")+'"></i>';
-  return '<header><div class="top"><div class="brand"><h1><svg class="wm" viewBox="0 0 172 74" height="46" role="img" aria-label="Reps" fill="none" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"><g class="wm-l" transform="skewX(-10) translate(14 0)"><path d="M5 52V8H21Q33 8 33 20Q33 32 21 32H5M21 32L34 52"/><path transform="translate(44 0)" d="M29 8H5V52H29M5 30H25"/><path transform="translate(86 0)" d="M5 52V8H21Q33 8 33 20Q33 32 21 32H5"/><path transform="translate(126 0)" d="M29 14Q26 8 17 8Q5 8 5 18Q5 27 17 30Q29 33 29 42Q29 52 17 52Q7 52 4 45"/></g><g stroke="none"><circle class="wm-l f" cx="50" cy="68" r="4.4"/><circle class="wm-l f" cx="70" cy="68" r="4.4"/><circle class="wm-l f" cx="90" cy="68" r="4.4"/><circle class="wm-d f" cx="110" cy="68" r="4.4"/><circle class="wm-d f" cx="130" cy="68" r="4.4"/></g></svg></h1>'+who+'</div><button class="lvl" data-a="lvlopen" aria-label="Voir les niveaux suivants">Niv. '+lv.L+'</button></div>'+
-    '<div><div class="xp" role="progressbar" aria-valuenow="'+pct+'" aria-valuemin="0" aria-valuemax="100" aria-label="Progression vers le niveau suivant"><i style="width:'+pct+'%"></i></div>'+
-    '<div class="xpline"><span>'+xp+' XP</span><span>Niveau '+(lv.L+1)+' à '+lv.hi+' XP</span></div></div>'+
+  return '<header><h1 class="logo"><svg class="wm" viewBox="0 0 172 74" height="46" role="img" aria-label="Reps" fill="none" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"><g class="wm-l" transform="skewX(-10) translate(14 0)"><path d="M5 52V8H21Q33 8 33 20Q33 32 21 32H5M21 32L34 52"/><path transform="translate(44 0)" d="M29 8H5V52H29M5 30H25"/><path transform="translate(86 0)" d="M5 52V8H21Q33 8 33 20Q33 32 21 32H5"/><path transform="translate(126 0)" d="M29 14Q26 8 17 8Q5 8 5 18Q5 27 17 30Q29 33 29 42Q29 52 17 52Q7 52 4 45"/></g><g stroke="none"><circle class="wm-l f" cx="50" cy="68" r="4.4"/><circle class="wm-l f" cx="70" cy="68" r="4.4"/><circle class="wm-l f" cx="90" cy="68" r="4.4"/><circle class="wm-d f" cx="110" cy="68" r="4.4"/><circle class="wm-d f" cx="130" cy="68" r="4.4"/></g></svg></h1><section class="prof" aria-label="Profil"><div class="prow">'+who+'<button class="lvl" data-a="lvlopen" aria-label="Voir les niveaux suivants">Niv. '+lv.L+'</button></div>'+
+    '<div class="xp" role="progressbar" aria-valuenow="'+pct+'" aria-valuemin="0" aria-valuemax="100" aria-label="Progression vers le niveau suivant"><i style="width:'+pct+'%"></i></div>'+
+    '<div class="xpline"><span>'+xp+' XP</span><span>Niveau '+(lv.L+1)+' à '+lv.hi+' XP</span></div></section>'+
     '<div class="stats"><button class="stat sbtn" data-a="stkopen" aria-label="Détail de la série"><span class="label">Série en cours</span><div class="num">'+st+' <small style="font-size:16px;color:var(--mute);font-family:var(--f-body);font-weight:500">sem.</small></div><div class="xpline">Au moins 1 séance par semaine</div></button>'+
     '<div class="stat"><span class="label">Cette semaine</span><div class="num">'+n+'/'+weekGoal(wk(today()))+'</div><div class="dots" aria-hidden="true">'+dots+'</div></div></div></header>';
 }
@@ -764,14 +776,19 @@ function seanceHtml(){
         '<button class="btn ghost" data-a="pgropen">2 · Composer mes séances</button></section>';
     }
     var pl=planned();
+    var plHtml='';
+    if(pl){
+      if(pl.mode==="next")plHtml='<div class="xpline"><span>Pas de séance prévue aujourd\'hui · prochaine : <b>'+esc(pl.p.name)+'</b> ('+pl.when+')</span></div><span class="label" style="margin-top:6px">Ou une séance maintenant</span>';
+      else plHtml='<button class="btn" data-a="startplan">'+(pl.mode==="today"?'Séance du jour : ':'Séance suivante : ')+esc(pl.p.name)+'</button><span class="label" style="margin-top:6px">Ou une autre séance</span>';
+    }
     var tpls=ps.map(function(p){return [p.id,p.name]}).concat([["all","Séance libre"]]);
     if(!tpls.some(function(t){return t[0]===nw.tpl}))nw.tpl="all";
     var start='<section class="card" aria-label="Nouvelle séance"><h2>Nouvelle séance</h2>'+
-      (pl?'<button class="btn" data-a="startplan">Séance suivante : '+esc(pl.name)+'</button><span class="label" style="margin-top:6px">Ou une autre séance</span>':'')+
+      plHtml+
       '<div class="pills" role="group" aria-label="Type de séance">'+tpls.map(function(t){return '<button class="pill" data-a="tpl" data-k="'+esc(t[0])+'" aria-pressed="'+(nw.tpl===t[0])+'">'+esc(t[1])+'</button>'}).join("")+'</div>'+
       '<label class="fld"><span>Nom de la séance (par défaut : '+esc(pname(nw.tpl))+')</span><input id="nwname" data-f="nwn" placeholder="'+esc(pname(nw.tpl))+'" maxlength="40" value="'+esc(nw.name)+'" autocomplete="off"></label>'+
       '<label class="fld"><span>Date (modifiable)</span><input type="date" id="nwd" data-f="nwd" max="'+td+'" value="'+esc(nw.d||td)+'"></label>'+
-      '<button class="btn'+(pl?' ghost':'')+'" data-a="startother">Commencer cette séance</button></section>'+
+      '<button class="btn'+(pl&&pl.mode!=="next"?' ghost':'')+'" data-a="startother">Commencer cette séance</button></section>'+
       '<div class="two"><button class="btn ghost" data-a="pgropen">Mes séances</button><button class="btn ghost" data-a="mgropen">Mes machines</button></div>';
     return hero+start+(S.sessions.length===0?'<div class="empty">Aucune séance enregistrée pour l\'instant.</div>':'');
   }
@@ -1212,7 +1229,7 @@ function medHtml(){
 }
 function pgrHtml(){
   var ps=S.progs||[];
-  var rows=ps.map(function(p){return '<button class="pickrow" data-a="pedit" data-id="'+esc(p.id)+'"><span class="nm">'+esc(p.name)+'<span class="mus" style="color:var(--mute)">'+p.machines.filter(function(id){var m=mach(id);return m&&!m.hidden}).length+' machine(s)</span></span></button>'}).join("");
+  var rows=ps.map(function(p){return '<button class="pickrow" data-a="pedit" data-id="'+esc(p.id)+'"><span class="nm">'+esc(p.name)+'<span class="mus" style="color:var(--mute)">'+((p.days||[]).length?(p.days.map(function(d){return DAYS3[d]}).join(", ")+' · '):'')+p.machines.filter(function(id){var m=mach(id);return m&&!m.hidden}).length+' machine(s)</span></span></button>'}).join("");
   return edPop("Mes séances",(rows?'<div class="list">'+rows+'</div>':'<div class="empty">Aucune séance pour l\'instant. Crée Haut, Bas, Full body ou ce que tu veux.</div>')+'<button class="btn" data-a="pnew">+ Nouvelle séance</button>',"pgrclose");
 }
 function pedHtml(){
@@ -1221,6 +1238,7 @@ function pedHtml(){
   var del=!isNew?(pdelAsk?'<div class="xpline"><span>La séance disparaît, ton historique est conservé.</span></div><button class="btn" style="background:#b3261e;color:#fff" data-a="pdelyes">Confirmer la suppression</button><button class="btn ghost" data-a="pdelno">Garder</button>':'<button class="lk" data-a="pdelask">Supprimer cette séance</button>'):'';
   return edPop(isNew?"Nouvelle séance":"Modifier la séance",
     '<label class="fld"><span>Nom de la séance</span><input id="pedname" maxlength="40" value="'+esc(e.name)+'" placeholder="ex. Haut, Bas, Full body" autocomplete="off"></label>'+
+    '<span class="label">Jour habituel (pour « Séance du jour »)</span><div class="pills" role="group" aria-label="Jours">'+[1,2,3,4,5,6,0].map(function(d){return '<button class="pill" data-a="pday" data-d="'+d+'" aria-pressed="'+(e.days.indexOf(d)>=0)+'">'+DAYS3[d]+'</button>'}).join("")+'</div>'+
     '<span class="label">Machines de cette séance</span>'+(rows?'<div class="list">'+rows+'</div>':'<div class="empty">Crée d\'abord une machine.</div>')+
     '<button class="btn ghost" data-a="mnew">Créer une nouvelle machine</button><button class="btn" data-a="psave">Enregistrer</button>'+del,"pclose");
 }
@@ -1258,8 +1276,8 @@ function saveProg(){
   var e=pEd,name=(e.name||"").trim();
   if(!name){toast("Donne un nom à la séance");return}
   S.progs=S.progs||[];
-  if(e.id){var p=progById(e.id);if(p){p.name=name;p.machines=e.machines.slice()}}
-  else S.progs.push({id:"p"+Date.now(),name:name,machines:e.machines.slice()});
+  if(e.id){var p=progById(e.id);if(p){p.name=name;p.days=e.days.slice();p.machines=e.machines.slice()}}
+  else S.progs.push({id:"p"+Date.now(),name:name,days:e.days.slice(),machines:e.machines.slice()});
   pEd=null;pdelAsk=false;save();render();toast("Séance enregistrée");
 }
 function popHtml0(){if(popG)return goalPromptHtml();if(popS)return stkHtml();if(popL)return lvlHtml();return chartId?chartHtml():det?detailHtml():(pk&&S.draft.meta)?pickHtml():popA?bigPop("Succès",succesHtml(),"achclose"):popB?bigPop("Sauvegarde et partage",backupHtml(),"bkclose"):""}
@@ -1333,8 +1351,9 @@ function act(el){
   else if(a==="mdelask"){mdelAsk=true;render()}
   else if(a==="mdelno"){mdelAsk=false;render()}
   else if(a==="mdelyes"){var dm=mach(mEd.id);if(dm){dm.hidden=true;delete S.draft.wip[dm.id];if(sh&&sh.id===dm.id)sh=null}mEd=null;mdelAsk=false;save();render();toast("Machine supprimée, historique conservé")}
-  else if(a==="pnew"){pEd={id:null,name:"",machines:[]};pdelAsk=false;render()}
-  else if(a==="pedit"){var ep=progById(el.getAttribute("data-id"));if(ep){pEd={id:ep.id,name:ep.name,machines:ep.machines.slice()};pdelAsk=false;render()}}
+  else if(a==="pnew"){pEd={id:null,name:"",days:[],machines:[]};pdelAsk=false;render()}
+  else if(a==="pedit"){var ep=progById(el.getAttribute("data-id"));if(ep){pEd={id:ep.id,name:ep.name,days:(ep.days||[]).slice(),machines:ep.machines.slice()};pdelAsk=false;render()}}
+  else if(a==="pday"){var dd=+el.getAttribute("data-d"),dx=pEd.days.indexOf(dd);if(dx>=0)pEd.days.splice(dx,1);else pEd.days.push(dd);render()}
   else if(a==="ptogm"){var id2=el.getAttribute("data-id"),ix=pEd.machines.indexOf(id2);if(ix>=0)pEd.machines.splice(ix,1);else pEd.machines.push(id2);render()}
   else if(a==="psave")saveProg();
   else if(a==="pclose"){pEd=null;pdelAsk=false;render()}
@@ -1380,7 +1399,7 @@ function act(el){
   else if(a==="del"){sh.rows.splice(+el.getAttribute("data-i"),1);touch();render()}
   else if(a==="rate"){var v=+el.getAttribute("data-v");if(S.draft.rates[sh.id]===v)delete S.draft.rates[sh.id];else S.draft.rates[sh.id]=v;save();render()}
   else if(a==="addrow")addRow();
-  else if(a==="startplan"){var pp=planned();if(pp)startSession(pp.id,null,null)}
+  else if(a==="startplan"){var pp=planned();if(pp)startSession(pp.p.id,null,null)}
   else if(a==="tpl"){nw.tpl=el.getAttribute("data-k");render()}
   else if(a==="startother"){var ne=document.getElementById("nwname"),de=document.getElementById("nwd");startSession(nw.tpl,(ne?ne.value:nw.name).trim(),de&&de.value?de.value:null)}
   else if(a==="mdiscard"){discardAsk=true;render()}
