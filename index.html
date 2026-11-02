@@ -375,7 +375,7 @@ function seed(){
     sessions:[],draft:{sets:[],xp:0,wip:{},rates:{},comment:"",meta:null},prs:0,goal:2,off:[],goals:{}};
 }
 var seededNow=false, det=null, chartId=null, bk={msg:"",text:"",pending:null,info:""};
-var S=seed(), loaded=false, dbDoc=null, tab="seance", sh=null, status="", rng="today", pickM=null, pk=false, popA=false, popB=false, popL=false, popS=false;
+var S=seed(), loaded=false, dbDoc=null, tab="seance", sh=null, status="", rng="today", pickM=null, pk=false, popA=false, popB=false, popL=false, popS=false, popG=false;
 var prog={1:"mon",2:"tue",3:"wed",4:"thu"}[new Date().getDay()]||"all";
 
 /* ---------- historique de départ ---------- */
@@ -417,6 +417,7 @@ function ensureSeed(s){
 }
 function afterLoad(){
   if(seededNow){seededNow=false;save()}
+  if(typeof (S.goals||{})[wk(today())]!=="number")popG=true;
   var b=bonusInfo().total;
   if(b>(S.bsee||0)){var d=b-(S.bsee||0);S.bsee=b;save();toast("Semaine validée : +"+d+" XP de bonus",true)}
 }
@@ -465,7 +466,7 @@ function adopt(d){
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 17:47";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 17:51";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -553,13 +554,14 @@ function weeksInfo(){
   var k=ks[0],run=0,jm={};
   while(k<=cur){
     var n=c[k]||0,mo=k.slice(0,7),st,g=weekGoal(k);
-    if(n>=g){st="ok";run++;if(!out.reach[run])out.reach[run]=k}
+    if(n>=1){st="ok";run++}
     else if((S.off||[]).indexOf(k)>=0)st="off";
     else if(k===cur)st="cur";
-    else if(!jm[mo]){jm[mo]=k;st="joker"}
+    else if(!jm[mo]){jm[mo]=k;st="joker";run++}
     else{st="miss";run=0}
+    if((st==="ok"||st==="joker")&&!out.reach[run])out.reach[run]=k;
     if(run>out.best)out.best=run;
-    out.weeks.push({k:k,n:n,st:st,run:run});
+    out.weeks.push({k:k,n:n,st:st,run:run,g:g,met:n>=g});
     k=addDays(k,7);
   }
   out.streak=run;out.jokerUsed=jm[cur.slice(0,7)]||null;
@@ -570,7 +572,7 @@ function weekBonus(run){return 50+10*Math.min(Math.max(run-1,0),5)}
 function bonusInfo(){
   var W=weeksInfo(),cur=wk(today()),tot=0,n=0,next=0;
   W.weeks.forEach(function(w){
-    if(w.st!=="ok")return;
+    if(w.st!=="ok"||!w.met)return;
     if(w.k<cur){tot+=weekBonus(w.run);n++}else next=weekBonus(w.run);
   });
   return {total:tot,count:n,next:next};
@@ -723,7 +725,7 @@ function headerHtml(){
   return '<header><div class="top"><h1>Carnet de salle</h1><button class="lvl" data-a="lvlopen" aria-label="Voir les niveaux suivants">Niv. '+lv.L+'</button></div>'+
     '<div><div class="xp" role="progressbar" aria-valuenow="'+pct+'" aria-valuemin="0" aria-valuemax="100" aria-label="Progression vers le niveau suivant"><i style="width:'+pct+'%"></i></div>'+
     '<div class="xpline"><span>'+xp+' XP</span><span>Niveau '+(lv.L+1)+' à '+lv.hi+' XP</span></div></div>'+
-    '<div class="stats"><button class="stat sbtn" data-a="stkopen" aria-label="Détail de la série"><span class="label">Série en cours</span><div class="num">'+st+' <small style="font-size:16px;color:var(--mute);font-family:var(--f-body);font-weight:500">sem.</small></div><div class="xpline">Cette semaine : objectif '+weekGoal(wk(today()))+'</div></button>'+
+    '<div class="stats"><button class="stat sbtn" data-a="stkopen" aria-label="Détail de la série"><span class="label">Série en cours</span><div class="num">'+st+' <small style="font-size:16px;color:var(--mute);font-family:var(--f-body);font-weight:500">sem.</small></div><div class="xpline">Au moins 1 séance par semaine</div></button>'+
     '<div class="stat"><span class="label">Cette semaine</span><div class="num">'+n+'/'+weekGoal(wk(today()))+'</div><div class="dots" aria-hidden="true">'+dots+'</div></div></div></header>';
 }
 function legendHtml(){return '<div class="legend" aria-hidden="true"><span><i class="l1"></i>Un peu</span><span><i class="l2"></i>Bien</span><span><i class="l3"></i>À fond</span></div>'}
@@ -1125,26 +1127,38 @@ function lvlHtml(){
     '<div class="xpline"><span>'+xp.toLocaleString("fr-FR")+' XP au total</span></div>'+rows+
     '<p class="cap" style="margin:0">Estimation au rythme de tes '+n+' séances.</p></div></div>';
 }
-var stkSel=null;
+var stkSel=null,gsel=null;
+function weekLabel(k){var e=addDays(k,6),f=function(d){return new Date(d+"T12:00:00").toLocaleDateString("fr-FR",{day:"numeric",month:"long"})};return "du "+f(k)+" au "+f(e)}
 function stkHtml(){
-  var W=weeksInfo(),B=bonusInfo(),cur=wk(today()),sel=stkSel||cur,isOff=(S.off||[]).indexOf(sel)>=0,gs=weekGoal(sel),custom=!!(S.goals&&typeof S.goals[sel]==="number");
+  var W=weeksInfo(),B=bonusInfo(),cur=wk(today()),isOff=(S.off||[]).indexOf(cur)>=0,locked=typeof (S.goals||{})[cur]==="number";
   var fm=function(k){return k.slice(8)+"/"+k.slice(5,7)};
   var last=W.weeks.slice(-8).map(function(w){
     var lab={ok:"✓",joker:"J",off:"off",miss:"✗",cur:"…"}[w.st];
-    return '<button class="wk '+w.st+(w.k===sel?' sel':'')+'" data-a="wksel" data-k="'+w.k+'" aria-label="Semaine du '+fm(w.k)+'" aria-pressed="'+(w.k===sel)+'"><b>'+lab+'</b><small>'+w.n+'/'+weekGoal(w.k)+'</small><small>'+fm(w.k)+'</small></button>';
+    return '<span class="wk '+w.st+'" title="Semaine du '+fm(w.k)+'"><b>'+lab+'</b><small'+(w.met&&w.k<cur?' style="color:var(--accent);font-weight:700"':'')+'>'+w.n+'/'+w.g+'</small><small>'+fm(w.k)+'</small></span>';
   }).join("");
-  var jok=W.jokerUsed?'Joker de ce mois : utilisé (semaine du '+fm(W.jokerUsed)+').':'Joker de ce mois : disponible. Il sauve automatiquement ta première semaine ratée du mois.';
+  var jok=W.jokerUsed?'Joker de ce mois : utilisé (semaine du '+fm(W.jokerUsed)+').':'Joker de ce mois : disponible.';
   return '<div class="mini-bg" data-a="sbg"><div class="mini" role="dialog" aria-label="Série">'+
     '<div class="sheet-top"><h2>Série</h2><button class="x" data-a="stkclose" aria-label="Fermer">×</button></div>'+
     '<div class="xpline"><span><b>'+W.streak+'</b> semaine'+(W.streak>1?'s':'')+' d\'affilée · record <b>'+W.best+'</b></span></div>'+
-    '<span class="label">Semaines (touche pour modifier)</span><div class="wks">'+last+'</div>'+
-    '<span class="label">Objectif, semaine du '+fm(sel)+(custom?'':' (par défaut)')+'</span><div class="pills" role="group" aria-label="Objectif de la semaine">'+[1,2,3,4].map(function(n){return '<button class="pill" data-a="wgoal" data-n="'+n+'" aria-pressed="'+(gs===n)+'">'+n+'</button>'}).join("")+'</div>'+
-    '<button class="btn ghost" data-a="woff">'+(isOff?'Reprendre : cette semaine compte':(sel===cur?'Cette semaine':'Semaine du '+fm(sel))+' off (vacances, maladie)')+'</button>'+
-    '<span class="label">Objectif par défaut</span><div class="pills" role="group" aria-label="Objectif par défaut">'+[1,2,3,4].map(function(n){return '<button class="pill" data-a="goal" data-n="'+n+'" aria-pressed="'+(goalN()===n)+'">'+n+'</button>'}).join("")+'</div>'+
-    '<div class="xpline"><span>Bonus de fin de semaine : <b>+'+B.total+' XP</b> gagnés'+(B.next?' · <b>+'+B.next+' XP</b> versés lundi si tu gardes l\'objectif de cette semaine':'')+'</span></div>'+
-    '<p class="cap" style="margin:0">'+esc(jok)+' Les jours de repos ne cassent rien : seule une semaine sous son objectif compte. Une semaine off ne casse pas la série et ne la fait pas avancer.</p></div></div>';
+    '<p class="cap" style="margin:0">La série compte les semaines avec au moins une séance. Un joker par mois sauve la première semaine sans séance et compte dans la série.</p>'+
+    '<div class="wks">'+last+'</div>'+
+    '<span class="label">Objectif XP de cette semaine</span>'+
+    '<div class="xpline"><span>'+(locked?'<b>'+S.goals[cur]+' séance'+(S.goals[cur]>1?'s':'')+'</b> (choisi, définitif)':'Pas encore choisi')+'</span></div>'+
+    (locked?'':'<button class="btn" data-a="gopen">Choisir l\'objectif de la semaine</button>')+
+    '<div class="xpline"><span>Bonus de fin de semaine : <b>+'+B.total+' XP</b> gagnés'+(B.next?' · <b>+'+B.next+' XP</b> versés lundi':'')+'</span></div>'+
+    '<p class="cap" style="margin:0">'+esc(jok)+'</p>'+
+    '<button class="btn ghost" data-a="woff">'+(isOff?'Reprendre : cette semaine compte':'Cette semaine off (vacances, maladie)')+'</button></div></div>';
 }
-function popHtml(){if(popS)return stkHtml();if(popL)return lvlHtml();return chartId?chartHtml():det?detailHtml():(pk&&S.draft.meta)?pickHtml():popA?bigPop("Succès",succesHtml(),"achclose"):popB?bigPop("Sauvegarde et partage",backupHtml(),"bkclose"):""}
+function goalPromptHtml(){
+  var cur=wk(today()),g=gsel||2;
+  return '<div class="mini-bg" data-a="gbg"><div class="mini" role="dialog" aria-label="Objectif de la semaine">'+
+    '<div class="sheet-top"><h2>Nouvelle semaine</h2></div>'+
+    '<p class="cap" style="margin:0">Combien de séances comptes-tu faire '+esc(weekLabel(cur))+' ?</p>'+
+    '<div class="pills" role="group" aria-label="Nombre de séances">'+[1,2,3,4,5].map(function(n){return '<button class="pill" data-a="gpick" data-n="'+n+'" aria-pressed="'+(g===n)+'">'+n+'</button>'}).join("")+'</div>'+
+    '<p class="cap" style="margin:0">Choix définitif pour la semaine. Objectif atteint : bonus d\'XP versé lundi (50 XP et plus selon ta série).</p>'+
+    '<button class="btn" data-a="gok">Valider : '+g+' séance'+(g>1?'s':'')+'</button><button class="lk" data-a="glater">Plus tard</button></div></div>';
+}
+function popHtml(){if(popG)return goalPromptHtml();if(popS)return stkHtml();if(popL)return lvlHtml();return chartId?chartHtml():det?detailHtml():(pk&&S.draft.meta)?pickHtml():popA?bigPop("Succès",succesHtml(),"achclose"):popB?bigPop("Sauvegarde et partage",backupHtml(),"bkclose"):""}
 function sheetHtml(){
   if(!sh)return "";
   var m=mach(sh.id),kind=kindOf(sh.id),b=bestSet(sh.id,true),ls=lastSession(sh.id),t=target(sh.id),nn=muNames(sh.id);
@@ -1204,6 +1218,10 @@ function act(el){
   else if(a==="prog"){setProg(el.getAttribute("data-p"));save();render()}
   else if(a==="stkopen"){popS=true;stkSel=null;render()}
   else if(a==="stkclose"){popS=false;render()}
+  else if(a==="gopen"){popS=false;popG=true;render()}
+  else if(a==="gpick"){gsel=+el.getAttribute("data-n");render()}
+  else if(a==="gok"){S.goals=S.goals||{};S.goals[wk(today())]=gsel||2;popG=false;save();render();toast("Objectif de la semaine : "+(gsel||2)+" séance"+((gsel||2)>1?"s":""))}
+  else if(a==="glater"){popG=false;render()}
   else if(a==="wksel"){stkSel=el.getAttribute("data-k");render()}
   else if(a==="wgoal"){var wk0=stkSel||wk(today());S.goals=S.goals||{};S.goals[wk0]=+el.getAttribute("data-n");save();render()}
   else if(a==="goal"){S.goal=+el.getAttribute("data-n");save();render()}
@@ -1272,6 +1290,7 @@ function act(el){
 }
 document.addEventListener("click",function(e){
   var el=e.target.closest("[data-a]");if(!el)return;
+  if(el.getAttribute("data-a")==="gbg")return;
   if(el.getAttribute("data-a")==="sbg"){if(e.target===el){popS=false;render()}return}
   if(el.getAttribute("data-a")==="lbg"){if(e.target===el){popL=false;render()}return}
   if(el.getAttribute("data-a")==="xbg"){if(e.target===el){popA=false;popB=false;render()}return}
@@ -1313,7 +1332,7 @@ document.addEventListener("change",function(e){
 document.addEventListener("keydown",function(e){
   var t=e.target;
   if((e.key==="Enter"||e.key===" ")&&t.classList&&(t.classList.contains("mu")||t.classList.contains("pr-card"))){e.preventDefault();act(t)}
-  if(e.key==="Escape"){if(chartId)chartId=null;else if(det)det=null;else if(pk)pk=false;else if(popS)popS=false;else if(popL)popL=false;else if(popA||popB){popA=false;popB=false}else if(sh)sh=null;else return;render()}
+  if(e.key==="Escape"){if(chartId)chartId=null;else if(det)det=null;else if(popG)popG=false;else if(pk)pk=false;else if(popS)popS=false;else if(popL)popL=false;else if(popA||popB){popA=false;popB=false}else if(sh)sh=null;else return;render()}
 });
 render();
 if("serviceWorker" in navigator){
