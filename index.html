@@ -503,7 +503,7 @@ function adopt(d){
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 21:11";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 21:17";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -1242,7 +1242,7 @@ function medHtml(){
   function chip(k){var st=e.mu[k]==="p"?"p":e.mu[k]==="s"?"s":"";return '<button class="mchip '+st+'" data-a="mmu" data-k="'+k+'" aria-label="'+esc(NAME[k])+(st==="p"?', principal':st==="s"?', secondaire':'')+'">'+esc(NAME[k])+(st==="p"?' ●':st==="s"?' ◐':'')+'</button>'}
   var chips=GROUPS.map(function(g){return '<div class="gch"><span class="label">'+g[0]+'</span><div class="mchips">'+g[1].map(chip).join("")+'</div></div>'}).join("");
   var kindHtml=isNew?'<span class="label">Type de mesure</span><div class="pills" role="group" aria-label="Type">'+kinds.map(function(k){return '<button class="pill" data-a="mkind" data-k="'+k[0]+'" aria-pressed="'+(e.kind===k[0])+'">'+k[1]+'</button>'}).join("")+'</div>':'';
-  var del=!isNew?(mdelAsk?'<div class="xpline"><span>La machine disparaît des listes, ton historique est conservé.</span></div><button class="btn" style="background:#b3261e;color:#fff" data-a="mdelyes">Confirmer la suppression</button><button class="btn ghost" data-a="mdelno">Garder</button>':'<button class="lk" data-a="mdelask">Supprimer cette machine</button>'):'';
+  var del=(!isNew&&!sh)?(mdelAsk?'<div class="xpline"><span>La machine disparaît des listes, ton historique est conservé.</span></div><button class="btn" style="background:#b3261e;color:#fff" data-a="mdelyes">Confirmer la suppression</button><button class="btn ghost" data-a="mdelno">Garder</button>':'<button class="lk" data-a="mdelask">Supprimer cette machine</button>'):'';
   return edPop(isNew?"Nouvelle machine":"Modifier la machine",
     '<label class="fld"><span>Nom</span><input id="medname" maxlength="60" value="'+esc(e.name)+'" placeholder="ex. Leg press" autocomplete="off"></label>'+kindHtml+
     '<span class="label">Muscles travaillés</span><p class="cap" style="margin:0">Touche une fois : principal ●. Deux fois : secondaire ◐. Trois fois : retiré.</p><div class="gchs">'+chips+'</div>'+
@@ -1320,7 +1320,7 @@ function sheetHtml(){
       '<button class="del" data-a="del" data-i="'+i+'" aria-label="Supprimer la série '+n+'">×</button></div>';
   }).join("");
   var hdr=kind==="w"?'<span>Charge (kg)</span><span>Reps</span>':kind==="t"?'<span>Durée (min:s)</span>':'<span>Durée (min:s)</span><span>Distance (km)</span>';
-  var delBlock=sh.del?'<div class="xpline"><span>La machine disparaît de la liste, ton historique est conservé.</span></div><button class="btn" style="background:#b3261e;color:#fff" data-a="mconfirm">Confirmer la suppression</button><button class="btn ghost" data-a="mcancel">Annuler</button>':'<button class="lk" data-a="mdel">Supprimer cette machine</button>';
+  var delBlock='<button class="lk" data-a="unsel">Retirer de la séance en cours</button>';
   return '<div class="sheet-bg" data-a="bg"><div class="sheet" role="dialog" aria-label="'+esc(m.name)+'">'+
     '<div class="sheet-top"><h2>'+esc(m.name)+'</h2><button class="x" data-a="close" aria-label="Fermer">×</button></div>'+
     '<div class="stage">'+figs(machLevels(sh.id),false,null)+mtxt+'</div>'+
@@ -1442,7 +1442,7 @@ function act(el){
     S=adopt(JSON.parse(JSON.stringify(bk.pending)));bk.pending=null;bk.msg="Sauvegarde importée. L'ancienne version est gardée en copie locale.";
     sh=null;det=null;chartId=null;save();render();toast("Sauvegarde importée");
   }
-  else if(a==="mdel"){sh.del=true;render()}
+  else if(a==="unsel"){var uid=sh.id;if(S.draft.sets.some(function(x){return x.m===uid}))toast("Cet exercice a déjà des séries validées dans la séance");else{var sl=selIds(),ui=sl.indexOf(uid);if(ui>=0)sl.splice(ui,1);delete S.draft.wip[uid];sh=null;save();render();toast("Exercice retiré de la séance")}}
   else if(a==="mcancel"){sh.del=false;render()}
   else if(a==="mconfirm"){var hm=mach(sh.id);if(hm)hm.hidden=true;delete S.draft.wip[sh.id];sh=null;save();render();toast("Machine supprimée, historique conservé")}
   else if(a==="mrestore"){var rm=mach(el.getAttribute("data-id"));if(rm){rm.hidden=false;save();render()}}
