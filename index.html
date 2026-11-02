@@ -102,6 +102,13 @@ nav button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
 .badge-n{min-width:26px;height:26px;border-radius:13px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-size:14px;font-weight:700;padding:0 6px}
 .add{display:flex;gap:8px;flex-wrap:wrap}
 .add input,.add select,.bw input{flex:1;min-width:140px;font:inherit;padding:12px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.fld{display:flex;flex-direction:column;gap:6px;min-width:0}
+.fld>span{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);font-weight:600}
+.fld input{width:100%;min-width:0;min-height:52px;font:inherit;font-size:17px;font-weight:500;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);-webkit-appearance:none;appearance:none;color-scheme:light dark;transition:border-color .15s,box-shadow .15s}
+.fld input::placeholder{color:var(--mute);font-weight:400}
+.fld input:focus,.fld input:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 28%,transparent)}
+.fld input[type=date]{text-align:left;display:block}
+.fld input[type=date]::-webkit-date-and-time-value{text-align:left}
 .btn{background:var(--accent);color:var(--accent-ink);font-weight:600;border-radius:8px;padding:12px 16px;min-height:48px}
 .btn.ghost{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
 .btn[disabled]{opacity:.45;cursor:default}
@@ -637,15 +644,14 @@ function seanceHtml(){
       '<button class="btn" data-a="startplan">Séance prévue : '+esc(PROGN[pl.k])+' ('+esc(pl.when)+')</button>'+
       '<span class="label" style="margin-top:6px">Ou une autre séance</span>'+
       '<div class="pills" role="group" aria-label="Type de séance">'+TPL.map(function(k){return '<button class="pill" data-a="tpl" data-k="'+k+'" aria-pressed="'+(nw.tpl===k)+'">'+esc(PROGN[k])+'</button>'}).join("")+'</div>'+
-      '<input id="nwname" data-f="nwn" placeholder="Nom (facultatif), ex. sortie du vendredi" maxlength="40" value="'+esc(nw.name)+'" aria-label="Nom de la séance">'+
-      '<label class="label" for="nwd">Date (change-la pour saisir une ancienne séance)</label>'+
-      '<input type="date" id="nwd" data-f="nwd" max="'+td+'" value="'+esc(nw.d||td)+'" aria-label="Date de la séance">'+
+      '<label class="fld"><span>Nom de la séance (facultatif)</span><input id="nwname" data-f="nwn" placeholder="ex. Sortie du vendredi" maxlength="40" value="'+esc(nw.name)+'" autocomplete="off"></label>'+
+      '<label class="fld"><span>Date (modifiable)</span><input type="date" id="nwd" data-f="nwd" max="'+td+'" value="'+esc(nw.d||td)+'"></label>'+
       '<button class="btn ghost" data-a="startother">Commencer cette séance</button></section>';
     return hero+start+(S.sessions.length===0?'<div class="empty">Aucune séance enregistrée pour l\'instant.</div>':'')+addForm;
   }
   var td2=today();
   var head='<section class="card" aria-label="Séance en cours"><span class="label">Séance en cours</span><div class="num" style="font-size:28px;line-height:1">'+esc(meta.name)+'</div>'+
-    '<label class="label" for="sdt">Date de la séance</label><input type="date" id="sdt" data-f="mdate" max="'+td2+'" value="'+esc(meta.d)+'" aria-label="Date de la séance">'+
+    '<label class="fld"><span>Date de la séance</span><input type="date" id="sdt" data-f="mdate" max="'+td2+'" value="'+esc(meta.d)+'"></label>'+
     (meta.d!==td2?'<div class="xpline"><span>Cette séance sera enregistrée au '+esc(dlabel(meta.d))+'.</span></div>':'')+
     (discardAsk?'<div class="xpline"><span>Les séries saisies seront perdues.</span></div><button class="btn" style="background:#b3261e;color:#fff" data-a="mdiscardyes">Confirmer l\'annulation</button><button class="btn ghost" data-a="mdiscardno">Continuer la séance</button>':'<button class="lk" data-a="mdiscard">Annuler cette séance</button>')+'</section>';
   var pills=['mon','tue','thu','wed','long'].map(function(k){return '<button class="pill" data-a="prog" data-p="'+k+'" aria-pressed="'+(prog===k)+'">'+esc(PROGN[k])+'</button>'}).join("")+
@@ -758,7 +764,7 @@ function detailHtml(){
   return '<div class="sheet-bg" data-a="pbg"><div class="sheet" role="dialog" aria-label="Détail de la séance">'+
     '<div class="sheet-top"><h2 class="cap1">'+esc(dlabel(se.d))+'</h2><button class="x" data-a="dclose" aria-label="Fermer">×</button></div>'+
     '<div class="xpline"><span>'+se.sets.length+' séries · '+metric(se.sets)+(se.ap?' · certaines données sont estimées':'')+'</span></div>'+
-    '<div class="eset" style="grid-template-columns:1fr 1fr"><input style="font-size:16px;font-family:var(--f-body);font-weight:500" data-f="sname" data-s="'+esc(se.id)+'" maxlength="40" value="'+esc(se.name||"")+'" placeholder="Nom de la séance" aria-label="Nom de la séance"><input type="date" style="font-size:16px;font-family:var(--f-body);font-weight:500" data-f="sdate" data-s="'+esc(se.id)+'" max="'+today()+'" value="'+esc(se.d)+'" aria-label="Date de la séance"></div>'+
+    '<div class="fld"><label class="fld"><span>Nom de la séance</span><input data-f="sname" data-s="'+esc(se.id)+'" maxlength="40" value="'+esc(se.name||"")+'" placeholder="Nom de la séance" autocomplete="off"></label><label class="fld" style="margin-top:10px"><span>Date</span><input type="date" data-f="sdate" data-s="'+esc(se.id)+'" max="'+today()+'" value="'+esc(se.d)+'"></label></div>'+
     '<div class="stage">'+figs(lv,false,null)+'<p class="cap">'+(names.length?'<b>Muscles sollicités :</b> '+esc(names.join(", "))+'.':'')+'</p></div>'+
     '<div><label class="label" for="cmdet">Commentaire de la séance</label><textarea id="cmdet" data-f="cm" data-s="'+esc(se.id)+'" rows="4" maxlength="600" placeholder="Sensations, douleurs, fatigue, ce que tu veux retenir">'+esc(se.comment||"")+'</textarea></div>'+
     gs+
