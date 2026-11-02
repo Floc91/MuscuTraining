@@ -47,6 +47,14 @@ h2{font-size:24px}
 header{display:flex;flex-direction:column;gap:12px}
 .top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
 h1{font-size:34px}
+.mini-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:35;display:grid;place-items:center;padding:16px}
+.mini{color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:14px;width:100%;max-width:320px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.mini h2{font-size:26px;color:var(--ink)}
+.lrow{display:grid;grid-template-columns:auto 1fr auto;gap:0 12px;align-items:baseline;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+.lrow b{font-family:var(--f-display);font-size:20px}
+.lrow span{text-align:right;font-weight:600}
+.lrow small{text-align:right;min-width:80px;color:var(--mute);font-size:13px}
+button.lvl{border:0;cursor:pointer;min-height:36px}
 .lvl{font-family:var(--f-display);font-weight:700;font-size:20px;background:var(--ink);color:var(--bg);padding:4px 10px;border-radius:4px;white-space:nowrap}
 .xp{height:10px;background:var(--line);border-radius:5px;overflow:hidden}
 .xp>i{display:block;height:100%;background:var(--accent);width:0;transition:width .5s}
@@ -357,7 +365,7 @@ function seed(){
     sessions:[],draft:{sets:[],xp:0,wip:{},rates:{},comment:"",meta:null},prs:0};
 }
 var seededNow=false, det=null, chartId=null, bk={msg:"",text:"",pending:null,info:""};
-var S=seed(), loaded=false, dbDoc=null, tab="seance", sh=null, status="", rng="today", pickM=null, pk=false, popA=false, popB=false;
+var S=seed(), loaded=false, dbDoc=null, tab="seance", sh=null, status="", rng="today", pickM=null, pk=false, popA=false, popB=false, popL=false;
 var prog={1:"mon",2:"tue",3:"wed",4:"thu"}[new Date().getDay()]||"all";
 
 /* ---------- historique de départ ---------- */
@@ -439,7 +447,7 @@ function adopt(d){
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 17:21";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 17:23";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -668,7 +676,7 @@ function headerHtml(){
   var xp=totalXp(),lv=level(xp),pct=Math.round((xp-lv.lo)/(lv.hi-lv.lo)*100);
   var c=weekCounts(),n=c[wk(today())]||0,st=streak(),dots="";
   for(var i=0;i<GOAL_WEEK;i++)dots+='<i class="'+(i<n?"on":"")+'"></i>';
-  return '<header><div class="top"><h1>Carnet de salle</h1><span class="lvl">Niv. '+lv.L+'</span></div>'+
+  return '<header><div class="top"><h1>Carnet de salle</h1><button class="lvl" data-a="lvlopen" aria-label="Voir les niveaux suivants">Niv. '+lv.L+'</button></div>'+
     '<div><div class="xp" role="progressbar" aria-valuenow="'+pct+'" aria-valuemin="0" aria-valuemax="100" aria-label="Progression vers le niveau suivant"><i style="width:'+pct+'%"></i></div>'+
     '<div class="xpline"><span>'+xp+' XP</span><span>Niveau '+(lv.L+1)+' à '+lv.hi+' XP</span></div></div>'+
     '<div class="stats"><div class="stat"><span class="label">Série en cours</span><div class="num">'+st+' <small style="font-size:16px;color:var(--mute);font-family:var(--f-body);font-weight:500">sem.</small></div><div class="xpline">'+GOAL_MIN+" séances ou plus par semaine</div></div>"+
@@ -1059,7 +1067,18 @@ function pickHtml(){
 function bigPop(title,body,close){
   return '<div class="sheet-bg" data-a="xbg"><div class="sheet" role="dialog" aria-label="'+esc(title)+'"><div class="sheet-top"><h2>'+esc(title)+'</h2><button class="x" data-a="'+close+'" aria-label="Fermer">×</button></div>'+body+'</div></div>';
 }
-function popHtml(){return chartId?chartHtml():det?detailHtml():(pk&&S.draft.meta)?pickHtml():popA?bigPop("Succès",succesHtml(),"achclose"):popB?bigPop("Sauvegarde et partage",backupHtml(),"bkclose"):""}
+function lvlHtml(){
+  var xp=totalXp(),lv=level(xp),n=S.sessions.length,avg=n?Math.round(xp/n):0,rows="";
+  for(var i=1;i<=4;i++){
+    var L=lv.L+i,need=40*(L-1)*(L-1),left=need-xp,ses=avg>0?Math.ceil(left/avg):0;
+    rows+='<div class="lrow"><b>Niv. '+L+'</b><span>'+need.toLocaleString("fr-FR")+' XP</span><small>≈ '+ses+' séance'+(ses>1?'s':'')+'</small></div>';
+  }
+  return '<div class="mini-bg" data-a="lbg"><div class="mini" role="dialog" aria-label="Niveaux">'+
+    '<div class="sheet-top"><h2>Niveau '+lv.L+'</h2><button class="x" data-a="lvlclose" aria-label="Fermer">×</button></div>'+
+    '<div class="xpline"><span>'+xp.toLocaleString("fr-FR")+' XP au total</span></div>'+rows+
+    '<p class="cap" style="margin:0">Estimation au rythme de tes '+n+' séances.</p></div></div>';
+}
+function popHtml(){if(popL)return lvlHtml();return chartId?chartHtml():det?detailHtml():(pk&&S.draft.meta)?pickHtml():popA?bigPop("Succès",succesHtml(),"achclose"):popB?bigPop("Sauvegarde et partage",backupHtml(),"bkclose"):""}
 function sheetHtml(){
   if(!sh)return "";
   var m=mach(sh.id),kind=kindOf(sh.id),b=bestSet(sh.id,true),ls=lastSession(sh.id),t=target(sh.id),nn=muNames(sh.id);
@@ -1117,6 +1136,8 @@ function act(el){
   var a=el.getAttribute("data-a");
   if(a==="tab"){tab=el.getAttribute("data-t");render()}
   else if(a==="prog"){setProg(el.getAttribute("data-p"));save();render()}
+  else if(a==="lvlopen"){popL=true;render()}
+  else if(a==="lvlclose"){popL=false;render()}
   else if(a==="achopen"){popA=true;render()}
   else if(a==="achclose"){popA=false;render()}
   else if(a==="bkopen"){popB=true;render()}
@@ -1179,6 +1200,7 @@ function act(el){
 }
 document.addEventListener("click",function(e){
   var el=e.target.closest("[data-a]");if(!el)return;
+  if(el.getAttribute("data-a")==="lbg"){if(e.target===el){popL=false;render()}return}
   if(el.getAttribute("data-a")==="xbg"){if(e.target===el){popA=false;popB=false;render()}return}
   if(el.getAttribute("data-a")==="kbg"){if(e.target===el){pk=false;render()}return}
   if(el.getAttribute("data-a")==="bg"){if(e.target===el){sh=null;render()}return}
@@ -1218,7 +1240,7 @@ document.addEventListener("change",function(e){
 document.addEventListener("keydown",function(e){
   var t=e.target;
   if((e.key==="Enter"||e.key===" ")&&t.classList&&(t.classList.contains("mu")||t.classList.contains("pr-card"))){e.preventDefault();act(t)}
-  if(e.key==="Escape"){if(chartId)chartId=null;else if(det)det=null;else if(pk)pk=false;else if(popA||popB){popA=false;popB=false}else if(sh)sh=null;else return;render()}
+  if(e.key==="Escape"){if(chartId)chartId=null;else if(det)det=null;else if(pk)pk=false;else if(popL)popL=false;else if(popA||popB){popA=false;popB=false}else if(sh)sh=null;else return;render()}
 });
 render();
 if("serviceWorker" in navigator){
