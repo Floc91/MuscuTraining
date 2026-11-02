@@ -109,6 +109,15 @@ nav button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
 .fld input:focus,.fld input:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 28%,transparent)}
 .fld input[type=date]{text-align:left;display:block}
 .fld input[type=date]::-webkit-date-and-time-value{text-align:left}
+.sec{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.sec h2{font-size:24px}
+.plus{min-width:48px;min-height:48px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:30px;line-height:1;font-weight:500;display:grid;place-items:center;padding:0 0 3px}
+.pickrow{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px;min-height:56px}
+.pickrow .box{flex:none;width:28px;height:28px;border-radius:8px;border:2px solid var(--line);display:grid;place-items:center;font-weight:700;color:var(--accent-ink)}
+.pickrow[aria-checked="true"]{border-color:var(--accent)}
+.pickrow[aria-checked="true"] .box{background:var(--accent);border-color:var(--accent)}
+.pickrow .nm{display:flex;flex-direction:column;font-weight:500}
+.pickrow .mus{font-size:13px;color:var(--accent);font-weight:500}
 .btn{background:var(--accent);color:var(--accent-ink);font-weight:600;border-radius:8px;padding:12px 16px;min-height:48px}
 .btn.ghost{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
 .btn[disabled]{opacity:.45;cursor:default}
@@ -251,7 +260,7 @@ var MU={
 var PROG={mon:["press","curl","ext","abd","add","calf","plank","rower"],wed:["run","rower","plank"],long:["run","rower"],
   tue:["chest","lat","row","rfly","pfly","chestclose","rower","plank"],
   thu:["row","lat","chest","pfly","rfly","chestclose","tri","press","add","abd","calf","rower","plank"]};
-var PROGN={mon:"Jambes",tue:"Haut",wed:"Cardio",thu:"Full body",long:"Sortie longue",all:"Séance libre"};
+var PROGN={mon:"Bas",tue:"Haut",wed:"Cardio",thu:"Full body",long:"Sortie longue",all:"Séance libre"};
 var DAYN={mon:"lundi",tue:"mardi",wed:"mercredi",thu:"jeudi"};
 var TPL=["mon","tue","thu","wed","long","all"];
 var nw={tpl:"all",name:"",d:null}, discardAsk=false;
@@ -326,7 +335,7 @@ function seed(){
     sessions:[],draft:{sets:[],xp:0,wip:{},rates:{},comment:"",meta:null},prs:0};
 }
 var seededNow=false, det=null, chartId=null, bk={msg:"",text:"",pending:null,info:""};
-var S=seed(), loaded=false, dbDoc=null, tab="seance", sh=null, status="", rng="today", pickM=null;
+var S=seed(), loaded=false, dbDoc=null, tab="seance", sh=null, status="", rng="today", pickM=null, pk=false;
 var prog={1:"mon",2:"tue",3:"wed",4:"thu"}[new Date().getDay()]||"all";
 
 /* ---------- historique de départ ---------- */
@@ -574,7 +583,7 @@ function undo(){
   if(s.pr)S.prs=Math.max(0,S.prs-1);
   save();render();
 }
-function renameHaut(s){s.sessions.forEach(function(x){if(x.name==='Haut A')x.name='Haut';if(x.name==='Haut B'||(x.id==='h2026-10-29'&&x.name==='Haut'))x.name='Full body'});var m=s.draft&&s.draft.meta;if(m){if(m.name==='Haut A')m.name='Haut';if(m.name==='Haut B')m.name='Full body'}}
+function renameHaut(s){s.sessions.forEach(function(x){if(x.name==='Jambes')x.name='Bas';if(x.name==='Haut A')x.name='Haut';if(x.name==='Haut B'||(x.id==='h2026-10-29'&&x.name==='Haut'))x.name='Full body'});var m=s.draft&&s.draft.meta;if(m){if(m.name==='Jambes')m.name='Bas';if(m.name==='Haut A')m.name='Haut';if(m.name==='Haut B')m.name='Full body'}}
 function sortSessions(){S.sessions.sort(function(a,c){return a.d<c.d?-1:a.d>c.d?1:0})}
 function finish(){
   if(!S.draft.sets.length)return;
@@ -582,7 +591,7 @@ function finish(){
   var xp=(S.draft.xp||0)+30,before=level(totalXp()).L;
   S.sessions.push({id:Date.now(),d:meta.d,name:meta.name||"",sets:S.draft.sets,rates:S.draft.rates||{},comment:S.draft.comment||"",xp:xp});
   sortSessions();
-  S.draft={sets:[],xp:0,wip:{},rates:{},comment:"",meta:null};sh=null;discardAsk=false;nw={tpl:"all",name:"",d:null};
+  S.draft={sets:[],xp:0,wip:{},rates:{},comment:"",meta:null};sh=null;pk=false;discardAsk=false;nw={tpl:"all",name:"",d:null};
   var after=level(totalXp()).L;
   save();render();
   toast(after>before?"Niveau "+after+" atteint !  +30 XP":"Séance terminée  +30 XP",after>before);
@@ -597,9 +606,23 @@ function planned(){
   }
   return {k:"mon",when:"lundi"};
 }
+function progList(k){return (PROG[k]||[]).slice()}
+function selIds(){var m=S.draft.meta;if(!m)return[];if(!Array.isArray(m.sel))m.sel=progList(m.prog||"all");return m.sel}
+function inSel(id){return selIds().indexOf(id)>=0||S.draft.sets.some(function(x){return x.m===id})||!!(S.draft.wip[id]&&S.draft.wip[id].length)}
+function setProg(k){
+  var m=S.draft.meta;if(!m)return;
+  if(m.name===PROGN[m.prog]||!m.name)m.name=PROGN[k]||m.name;
+  m.prog=k;m.sel=progList(k);prog=k;
+}
+function togSel(id){
+  var sel=selIds(),i=sel.indexOf(id);
+  if(i>=0){if(S.draft.sets.some(function(x){return x.m===id}))return toast("Cette machine a déjà des séries dans la séance");sel.splice(i,1);delete S.draft.wip[id]}
+  else sel.push(id);
+  save();
+}
 function startSession(k,name,d){
   var t=today();d=d||t;if(d>t)d=t;
-  S.draft.meta={d:d,name:(name||PROGN[k]||"Séance").slice(0,40),prog:k};
+  S.draft.meta={d:d,name:(name||PROGN[k]||"Séance").slice(0,40),prog:k,sel:progList(k)};
   prog=k;discardAsk=false;save();render();
 }
 function addMachine(){
@@ -609,6 +632,7 @@ function addMachine(){
   if(k&&NAME[k]){m.mu={};m.mu[k]="p"}
   if(kd==="t"||kd==="d")m.kind=kd;
   S.machines.push(m);
+  if(S.draft.meta)selIds().push(m.id);
   save();render();
 }
 function setBw(){
@@ -645,10 +669,10 @@ function seanceHtml(){
       '<button class="btn" data-a="startplan">Séance prévue : '+esc(PROGN[pl.k])+' ('+esc(pl.when)+')</button>'+
       '<span class="label" style="margin-top:6px">Ou une autre séance</span>'+
       '<div class="pills" role="group" aria-label="Type de séance">'+TPL.map(function(k){return '<button class="pill" data-a="tpl" data-k="'+k+'" aria-pressed="'+(nw.tpl===k)+'">'+esc(PROGN[k])+'</button>'}).join("")+'</div>'+
-      '<label class="fld"><span>Nom de la séance (facultatif)</span><input id="nwname" data-f="nwn" placeholder="ex. Sortie du vendredi" maxlength="40" value="'+esc(nw.name)+'" autocomplete="off"></label>'+
+      '<label class="fld"><span>Nom de la séance (par défaut : '+esc(PROGN[nw.tpl]||'Séance')+')</span><input id="nwname" data-f="nwn" placeholder="'+esc(PROGN[nw.tpl]||'Séance')+'" maxlength="40" value="'+esc(nw.name)+'" autocomplete="off"></label>'+
       '<label class="fld"><span>Date (modifiable)</span><input type="date" id="nwd" data-f="nwd" max="'+td+'" value="'+esc(nw.d||td)+'"></label>'+
       '<button class="btn ghost" data-a="startother">Commencer cette séance</button></section>';
-    return hero+start+(S.sessions.length===0?'<div class="empty">Aucune séance enregistrée pour l\'instant.</div>':'')+addForm;
+    return hero+start+(S.sessions.length===0?'<div class="empty">Aucune séance enregistrée pour l\'instant.</div>':'');
   }
   var td2=today();
   var head='<section class="card" aria-label="Séance en cours"><span class="label">Séance en cours</span><div class="num" style="font-size:28px;line-height:1">'+esc(meta.name)+'</div>'+
@@ -656,8 +680,8 @@ function seanceHtml(){
     (meta.d!==td2?'<div class="xpline"><span>Cette séance sera enregistrée au '+esc(dlabel(meta.d))+'.</span></div>':'')+
     (discardAsk?'<div class="xpline"><span>Les séries saisies seront perdues.</span></div><button class="btn" style="background:#b3261e;color:#fff" data-a="mdiscardyes">Confirmer l\'annulation</button><button class="btn ghost" data-a="mdiscardno">Continuer la séance</button>':'<button class="lk" data-a="mdiscard">Annuler cette séance</button>')+'</section>';
   var pills=['mon','tue','thu','wed','long'].map(function(k){return '<button class="pill" data-a="prog" data-p="'+k+'" aria-pressed="'+(prog===k)+'">'+esc(PROGN[k])+'</button>'}).join("")+
-    '<button class="pill" data-a="prog" data-p="all" aria-pressed="'+(prog==="all")+'">Tout</button>';
-  var ms=S.machines.filter(function(m){return !m.hidden&&(prog==="all"||(PROG[prog]||[]).indexOf(m.id)>=0||/^m\d+$/.test(m.id))});
+    '<button class="pill" data-a="prog" data-p="all" aria-pressed="'+(prog==="all")+'">Libre</button>';
+  var ms=S.machines.filter(function(m){return !m.hidden&&inSel(m.id)});
   var list=ms.map(function(m){
     var done=S.draft.sets.filter(function(x){return x.m===m.id}).length,ls=lastSession(m.id),kind=kindOf(m.id);
     var lastTxt=ls?(kind==="w"?"Dernière séance : "+ls.length+" × "+ls[0].r+" reps":"Dernière fois : "+fmtSet(ls[ls.length-1])):"Pas encore de séance";
@@ -669,8 +693,10 @@ function seanceHtml(){
       (done?'<span class="badge-n" aria-label="'+done+' séries">'+done+'</span>':"")+
       '<span class="w num">'+right+'</span></button>';
   }).join("");
-  return hero+head+'<div class="pills" role="group" aria-label="Programme">'+pills+'</div><div class="list">'+list+'</div>'+
-    '<div><label class="label" for="cmd">Commentaire de la séance en cours</label><textarea id="cmd" data-f="cm" data-s="draft" rows="3" maxlength="600" placeholder="Sensations, douleurs, fatigue…">'+esc(S.draft.comment||"")+'</textarea></div>'+addForm;
+  return hero+head+'<div class="pills" role="group" aria-label="Programme">'+pills+'</div>'+
+    '<div class="sec"><h2>Machines</h2><button class="plus" data-a="pkopen" aria-label="Ajouter une machine à la séance">+</button></div>'+
+    (ms.length?'<div class="list">'+list+'</div>':'<div class="empty">Aucune machine pour l\'instant. Touche + pour en ajouter.</div>')+
+    '<div><label class="label" for="cmd">Commentaire de la séance en cours</label><textarea id="cmd" data-f="cm" data-s="draft" rows="3" maxlength="600" placeholder="Sensations, douleurs, fatigue…">'+esc(S.draft.comment||"")+'</textarea></div>';
 }
 function musclesHtml(){
   var sc=muscleScores(rng),lv=levels(sc,rng),names=litNames(lv);
@@ -897,7 +923,23 @@ function backupHtml(){
    (bk.msg?'<div class="xpline" role="status"><span>'+esc(bk.msg)+'</span></div>':'');
   return h;
 }
-function popHtml(){return chartId?chartHtml():det?detailHtml():""}
+function pickHtml(){
+  var sel=selIds(),opts='<option value="">Muscle (optionnel)</option>'+Object.keys(NAME).map(function(k){return '<option value="'+k+'">'+esc(NAME[k])+'</option>'}).join("");
+  var rows=S.machines.filter(function(m){return !m.hidden}).map(function(m){
+    var on=inSel(m.id),nn=muNames(m.id),mus=nn.p.concat(nn.s);
+    return '<button class="pickrow" role="checkbox" aria-checked="'+on+'" data-a="ptog" data-id="'+esc(m.id)+'"><span class="box">'+(on?'✓':'')+'</span><span class="nm">'+esc(m.name)+(mus.length?'<span class="mus">'+esc(mus.join(" · "))+'</span>':'')+'</span></button>';
+  }).join("");
+  var hid=S.machines.filter(function(m){return m.hidden});
+  var hidHtml=hid.length?'<div><span class="label">Machines supprimées (historique conservé)</span><div class="chips" style="margin-top:6px">'+hid.map(function(m){return '<button class="chip" data-a="mrestore" data-id="'+esc(m.id)+'">Remettre '+esc(m.name)+'</button>'}).join("")+'</div></div>':'';
+  return '<div class="sheet-bg top" data-a="kbg"><div class="sheet" role="dialog" aria-label="Machines de la séance">'+
+    '<div class="sheet-top"><h2>Machines</h2><button class="x" data-a="pkclose" aria-label="Fermer">×</button></div>'+
+    '<p class="cap" style="margin:0">Coche les machines à faire pendant cette séance.</p>'+
+    '<div class="list">'+rows+'</div>'+
+    '<div class="card"><span class="label">Créer une nouvelle machine</span><div class="add"><input id="newm" placeholder="Nom de la machine" aria-label="Nom du nouvel exercice" maxlength="60"><select id="newmk" aria-label="Type de mesure"><option value="w">Charge et reps</option><option value="t">Durée</option><option value="d">Durée et distance</option></select><select id="newmu" aria-label="Muscle principal">'+opts+'</select><button class="btn ghost" data-a="add">Créer et ajouter</button></div></div>'+
+    hidHtml+
+    '<button class="btn" data-a="pkclose">Terminé</button></div></div>';
+}
+function popHtml(){return chartId?chartHtml():det?detailHtml():(pk&&S.draft.meta)?pickHtml():""}
 function sheetHtml(){
   if(!sh)return "";
   var m=mach(sh.id),kind=kindOf(sh.id),b=bestSet(sh.id,true),ls=lastSession(sh.id),t=target(sh.id),nn=muNames(sh.id);
@@ -954,7 +996,10 @@ function render(){
 function act(el){
   var a=el.getAttribute("data-a");
   if(a==="tab"){tab=el.getAttribute("data-t");render()}
-  else if(a==="prog"){prog=el.getAttribute("data-p");render()}
+  else if(a==="prog"){setProg(el.getAttribute("data-p"));save();render()}
+  else if(a==="pkopen"){pk=true;render()}
+  else if(a==="pkclose"){pk=false;render()}
+  else if(a==="ptog"){togSel(el.getAttribute("data-id"));render()}
   else if(a==="rng"){rng=el.getAttribute("data-r");render()}
   else if(a==="mu"){var k=el.getAttribute("data-m");pickM=pickM===k?null:k;render()}
   else if(a==="open")openSheet(el.getAttribute("data-id"));
@@ -1010,6 +1055,7 @@ function act(el){
 }
 document.addEventListener("click",function(e){
   var el=e.target.closest("[data-a]");if(!el)return;
+  if(el.getAttribute("data-a")==="kbg"){if(e.target===el){pk=false;render()}return}
   if(el.getAttribute("data-a")==="bg"){if(e.target===el){sh=null;render()}return}
   if(el.getAttribute("data-a")==="pbg"){if(e.target===el){if(chartId)chartId=null;else det=null;render()}return}
   act(el);
@@ -1047,7 +1093,7 @@ document.addEventListener("change",function(e){
 document.addEventListener("keydown",function(e){
   var t=e.target;
   if((e.key==="Enter"||e.key===" ")&&t.classList&&(t.classList.contains("mu")||t.classList.contains("pr-card"))){e.preventDefault();act(t)}
-  if(e.key==="Escape"){if(chartId)chartId=null;else if(det)det=null;else if(sh)sh=null;else return;render()}
+  if(e.key==="Escape"){if(chartId)chartId=null;else if(det)det=null;else if(pk)pk=false;else if(sh)sh=null;else return;render()}
 });
 render();
 if("serviceWorker" in navigator){
