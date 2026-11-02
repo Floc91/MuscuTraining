@@ -160,7 +160,7 @@ nav button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
 .hp i{display:block;height:100%;background:#d93a3a;border-radius:8px;transition:width .5s}
 .brand{display:flex;flex-direction:column;align-items:flex-start;gap:0}
 .logo{margin:0;line-height:1}
-.prof{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.prof{display:flex;flex-direction:column;gap:8px}
 .prow{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .who{background:none;border:0;padding:0;min-height:44px;font-family:var(--f-display);font-weight:700;font-size:34px;line-height:1;color:var(--ink);text-align:left;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .who.dim{font-family:var(--f-body);font-weight:500;font-size:18px;color:var(--mute)}
@@ -491,7 +491,7 @@ function adopt(d){
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 20:31";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 20:34";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
