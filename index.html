@@ -233,6 +233,8 @@ nav button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
 .x{display:grid;place-items:center}
 .endrow{display:flex;gap:8px}
 .endrow .btn{flex:1}
+.chead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.trash.sm{min-width:44px;min-height:44px}
 .trash{min-width:56px;min-height:48px;border-radius:8px;background:color-mix(in srgb,#d93a3a 14%,transparent);border:1px solid color-mix(in srgb,#d93a3a 40%,transparent);color:#d93a3a;display:grid;place-items:center}
 .x{min-width:44px;min-height:44px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-size:20px}
 .facts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
@@ -510,7 +512,7 @@ function adopt(d){
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 21:57";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 23:54";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -812,10 +814,10 @@ function seanceHtml(){
     return hero+start+(S.sessions.length===0?'<div class="empty">Aucune séance enregistrée pour l\'instant.</div>':'');
   }
   var td2=today();
-  var head='<section class="card" aria-label="Séance en cours"><span class="label">Séance en cours</span><div class="num" style="font-size:28px;line-height:1">'+esc(meta.name)+'</div>'+
+  var head='<section class="card" aria-label="Séance en cours"><div class="chead"><div><span class="label">Séance en cours</span><div class="num" style="font-size:28px;line-height:1;margin-top:4px">'+esc(meta.name)+'</div></div>'+(discardAsk?'':'<button class="trash sm" data-a="mdiscard" aria-label="Annuler cette séance"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/></svg></button>')+'</div>'+
     '<label class="fld"><span>Date de la séance</span><input type="date" id="sdt" data-f="mdate" max="'+td2+'" value="'+esc(meta.d)+'"></label>'+
     (meta.d!==td2?'<div class="xpline"><span>Cette séance sera enregistrée au '+esc(dlabel(meta.d))+'.</span></div>':'')+
-    (discardAsk?'<div class="xpline"><span>Les séries saisies seront perdues.</span></div><button class="btn" style="background:#b3261e;color:#fff" data-a="mdiscardyes">Confirmer l\'annulation</button><button class="btn ghost" data-a="mdiscardno">Continuer la séance</button>':'<button class="lk" data-a="mdiscard">Annuler cette séance</button>')+'</section>';
+    (discardAsk?'<div class="xpline"><span>Les séries saisies seront perdues.</span></div><button class="btn" style="background:#b3261e;color:#fff" data-a="mdiscardyes">Confirmer l\'annulation</button><button class="btn ghost" data-a="mdiscardno">Continuer la séance</button>':'')+'</section>';
   var pills=(S.progs||[]).map(function(p){return '<button class="pill" data-a="prog" data-p="'+esc(p.id)+'" aria-pressed="'+(prog===p.id)+'">'+esc(p.name)+'</button>'}).join("")+
     '<button class="pill" data-a="prog" data-p="all" aria-pressed="'+(prog==="all")+'">Libre</button>';
   var ms=S.machines.filter(function(m){return !m.hidden&&inSel(m.id)});
@@ -1425,7 +1427,7 @@ function act(el){
   else if(a==="close"){sh=null;render()}
   else if(a==="rw"){
     var i=+el.getAttribute("data-i"),f=el.getAttribute("data-f"),d=+el.getAttribute("data-d"),row=sh.rows[i],kd=kindOf(sh.id);
-    if(f==="w")row.w=Math.max(0,Math.round((row.w+d*2.5)*10)/10);
+    if(f==="w"){var ws=d>0?(row.w<10?2.5:5):(row.w<=10?2.5:5);row.w=Math.max(0,Math.round((row.w+d*ws)*10)/10)}
     else if(f==="r")row.r=Math.max(1,Math.min(99,row.r+d));
     else if(f==="t")row.t=Math.max(5,row.t+d*(kd==="t"?15:60));
     else if(f==="k")row.k=Math.max(0,Math.round(((row.k||0)+d*1)*100)/100);
