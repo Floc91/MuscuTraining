@@ -164,6 +164,8 @@ nav button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
 .prow{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .who{background:none;border:0;padding:0;min-height:44px;font-family:var(--f-display);font-weight:700;font-size:34px;line-height:1;color:var(--ink);text-align:left;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .who.dim{font-family:var(--f-body);font-weight:500;font-size:18px;color:var(--mute)}
+.gchs{display:flex;flex-direction:column;gap:10px}
+.gch{display:flex;flex-direction:column;gap:6px}
 .mchips{display:flex;flex-wrap:wrap;gap:8px}
 .mchip{border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 12px;min-height:40px;font-weight:500}
 .mchip.p{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
@@ -183,6 +185,7 @@ nav button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
 .bw input{max-width:90px;flex:none;min-width:0}
 .foot{font-size:12px;color:var(--mute);text-align:center}
 
+.grp{display:flex;flex-direction:column;gap:8px;margin-top:6px}
 .mrow{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.2fr) 64px;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 12px}
 .mrow .nm{font-weight:500;overflow-wrap:anywhere}
 .bar2{height:8px;background:var(--line);border-radius:4px;overflow:hidden}
@@ -252,7 +255,7 @@ textarea:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .exb{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px}
 .exb .hd{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
 .exb .hd b{overflow-wrap:anywhere}
-.mini{font-size:13px;color:var(--mute)}
+.mnote{font-size:13px;color:var(--mute)}
 .lk{color:var(--accent);font-weight:600;text-decoration:underline;padding:0 4px;min-height:44px;text-align:left}
 .eset{display:grid;grid-template-columns:20px 1fr 1fr 36px;gap:8px;align-items:center}
 .eset input{min-width:0;width:100%;font:inherit;font-family:var(--f-display);font-weight:700;font-size:22px;text-align:center;padding:8px 4px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
@@ -295,6 +298,14 @@ var NAME={
   glutes:"Fessiers", abd:"Abducteurs", add:"Adducteurs",
   quads:"Quadriceps", hams:"Ischio-jambiers", calves:"Mollets", cardio:"Cardio"
 };
+var GROUPS=[["Jambes",["quads","hams","glutes","abd","add","calves"]],["Dos",["lats","midback","lowback","traps"]],["Torse",["pecs","abs","obliques"]],["Épaules",["delt_ant","delt_post"]],["Bras",["biceps","triceps","forearms"]],["Cardio",["cardio"]]];
+function groupOfMu(mu){
+  var best=null;
+  GROUPS.forEach(function(g,i){g[1].forEach(function(k){if(mu[k]==="p"&&best===null)best=i})});
+  if(best===null)GROUPS.forEach(function(g,i){g[1].forEach(function(k){if(mu[k]&&best===null)best=i})});
+  return best===null?GROUPS.length:best;
+}
+function groupLabel(i){return i<GROUPS.length?GROUPS[i][0]:"Autres"}
 /* p = principal, s = secondaire */
 var MU={
   plank:{abs:"p",obliques:"s",lowback:"s",delt_ant:"s"},
@@ -492,7 +503,7 @@ function adopt(d){
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 21:00";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 21:05";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -500,7 +511,7 @@ function adopt(d){
 function e1(w,r){return w*(1+r/30)}
 function kindOf(id){var m=mach(id);return (m&&m.kind)||"w"}
 function isT(x){return x.t!=null}
-function sc(x){return isT(x)?(x.t||0)+(x.k!=null?x.k/1000:0):e1(x.w,x.r)}
+function sc(x){return isT(x)?(x.k!=null?x.k*1e5:0)+(x.t||0):e1(x.w,x.r)}
 function pad(n){return n<10?"0"+n:""+n}
 function fmtDur(sec){
   sec=Math.round(sec);
@@ -825,11 +836,14 @@ function musclesHtml(){
     var by=S.machines.filter(function(m){return muOf(m.id)[pickM]}).map(function(m){return m.name+(muOf(m.id)[pickM]==="p"&&pickM!=="cardio"?" (principal)":"")});
     cap='<b>'+esc(NAME[pickM])+'</b> : '+(by.length?esc(by.join(", "))+'.':'aucun exercice ne le travaille pour l\'instant.');
   }else cap=names.length?'<b>'+names.length+' muscles sollicités.</b> Touche un muscle pour voir quelles machines le travaillent.':'Rien à afficher sur cette période. Touche un muscle (sur le schéma ou dans la liste) pour voir quelles machines le travaillent, ou valide des séries.';
-  var keys=Object.keys(NAME).sort(function(a,b){return (sc[b]||0)-(sc[a]||0)||NAME[a].localeCompare(NAME[b],"fr")});
-  var mx=Math.max.apply(null,keys.map(function(k){return sc[k]||0}).concat([1]));
-  var rows=keys.map(function(k){
+  var mx=Math.max.apply(null,Object.keys(NAME).map(function(k){return sc[k]||0}).concat([1]));
+  function mrow(k){
     var v=sc[k]||0;
     return '<div class="mrow'+(pickM===k?' sel':'')+'" data-a="mu" data-m="'+k+'" role="button" tabindex="0" style="cursor:pointer"><span class="nm">'+esc(NAME[k])+'</span><span class="bar2"><i style="width:'+Math.round(v/mx*100)+'%"></i></span><span class="n num">'+(v?fmt(v):'—')+'</span></div>';
+  }
+  var rows=GROUPS.map(function(g){
+    var ks=g[1].slice().sort(function(a,b){return (sc[b]||0)-(sc[a]||0)||NAME[a].localeCompare(NAME[b],"fr")});
+    return '<div class="grp"><span class="label">'+g[0]+'</span>'+ks.map(mrow).join("")+'</div>';
   }).join("");
   return '<div class="pills" role="group" aria-label="Période">'+rp+'</div>'+
     '<section class="stage">'+figs(lv,true,pickM)+legendHtml()+'<p class="cap" aria-live="polite">'+cap+'</p></section>'+
@@ -948,10 +962,15 @@ function succesHtml(){
   return '<section class="card"><span class="label">Succès débloqués</span><div class="num" style="font-size:34px;line-height:1">'+done+' / '+R.length+'</div><div class="xp"><i style="width:'+Math.round(done/R.length*100)+'%"></i></div></section>'+boss+out;
 }
 function progresHtml(){
-  var cards=S.machines.filter(function(m){return !m.hidden}).map(function(m){
+  var vis=S.machines.filter(function(m){return !m.hidden});
+  function card(m){
     var b=bestSet(m.id,false);
     return '<div class="pr-card" role="button" tabindex="0" data-a="chart" data-id="'+esc(m.id)+'" style="cursor:pointer"><div class="nm">'+esc(m.name)+'<div class="label">Record · touche pour les courbes</div></div>'+
       '<div class="rec num">'+(b?fmtSet(b):'—')+'</div>'+(lastRate(m.id)?'<div class="xpline" style="grid-column:1/-1"><span>Dernier ressenti : '+lastRate(m.id)+'/5 ('+RL[lastRate(m.id)].toLowerCase()+')</span></div>':'')+spark(m.id)+'</div>';
+  }
+  var cards=GROUPS.concat([["Autres",[]]]).map(function(g,gi){
+    var ms=vis.filter(function(m){return groupOfMu(muOf(m.id))===gi});
+    return ms.length?'<div class="grp"><span class="label">'+g[0]+'</span>'+ms.map(card).join("")+'</div>':'';
   }).join("");
   var nA=Object.keys(achIds()).length;
   return '<button class="btn gold gb" data-a="achopen"><svg class="trophy" width="34" height="34" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="tgd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3b0"/><stop offset=".5" stop-color="#ffc928"/><stop offset="1" stop-color="#d98c00"/></linearGradient></defs><g stroke="#3a2600" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M9 8H4.5c0 5 1.8 7.4 5.2 8" fill="none"/><path d="M23 8h4.5c0 5-1.8 7.4-5.2 8" fill="none"/><path d="M9 4h14v7.5a7 7 0 0 1-14 0z" fill="url(#tgd)"/><path d="M14 18.5h4V23h-4z" fill="url(#tgd)"/><path d="M10.5 23h11l1.5 5h-14z" fill="url(#tgd)"/></g><path d="M16 7.2l1.3 2.7 2.9.4-2.1 2 .5 2.9-2.6-1.4-2.6 1.4.5-2.9-2.1-2 2.9-.4z" fill="#fff" stroke="#3a2600" stroke-width="1" stroke-linejoin="round"/><path d="M27.5 2.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7zM3.5 14l.5 1.2 1.2.5-1.2.5-.5 1.2-.5-1.2-1.2-.5 1.2-.5z" fill="#fff" stroke="#3a2600" stroke-width=".6" stroke-linejoin="round"/></svg>Succès · '+nA+' / '+ACH.length+'</button><h2>Records par machine</h2><div class="list">'+cards+'</div>'+
@@ -999,8 +1018,8 @@ function detailHtml(){
       rows='<div class="chips">'+g.items.map(function(it){return '<span class="chip'+(it.x.pr?" pr":"")+'">'+esc(fmtSet(it.x))+(it.x.pr?" ★":"")+'</span>'}).join("")+'</div>';
     }
     var kmT=sets.reduce(function(a,x){return a+(x.k||0)},0);
-    var head=vol(sets)>0?fmtN(vol(sets))+' kg':fmtDur(totT(sets))+(kmT?' · '+fmtKm(kmT)+' km':'');
-    return '<div class="exb"><div class="hd"><b>'+esc(nm)+'</b><span class="mini">'+head+(rt?' · ressenti '+rt+'/5':'')+'</span></div>'+rows+
+    var head=vol(sets)>0?'':fmtDur(totT(sets))+(kmT?' · '+fmtKm(kmT)+' km':'');
+    return '<div class="exb"><div class="hd"><b>'+esc(nm)+'</b><span class="mnote">'+[head,rt?'ressenti '+rt+'/5':''].filter(Boolean).join(' · ')+'</span></div>'+rows+
       '<button class="lk" data-a="chart" data-id="'+esc(g.id)+'">Voir les courbes</button></div>';
   }).join("");
   var del=det.del?'<button class="btn" style="background:#b3261e;color:#fff" data-a="dconfirm">Confirmer la suppression de la séance</button><button class="btn ghost" data-a="dcancel">Annuler</button>':'<button class="btn ghost" data-a="ddel">Supprimer la séance</button>';
@@ -1058,8 +1077,8 @@ function chartHtml(){
   if(!rows.length)body='<div class="empty">Pas encore de séance sur cet exercice. Les courbes apparaîtront après le premier exercice terminé.</div>';
   else{
     var c=chartCfg(rows),pts=rows.map(function(r){return {d:r.d,a:c.a(r.ss),b:c.b(r.ss),n:r.ss.length}});
-    body='<div class="chartbox"><span class="label">'+esc(c.ta)+'</span>'+chartSvg(pts,"a",c.ta,c.fa)+'<span class="mini">'+esc(c.sa)+'</span></div>'+
-      '<div class="chartbox"><span class="label">'+esc(c.tb)+'</span>'+chartSvg(pts,"b",c.tb,c.fb)+'<span class="mini">'+esc(c.sb)+'</span></div>'+
+    body='<div class="chartbox"><span class="label">'+esc(c.ta)+'</span>'+chartSvg(pts,"a",c.ta,c.fa)+'<span class="mnote">'+esc(c.sa)+'</span></div>'+
+      '<div class="chartbox"><span class="label">'+esc(c.tb)+'</span>'+chartSvg(pts,"b",c.tb,c.fb)+'<span class="mnote">'+esc(c.sb)+'</span></div>'+
       '<table class="ptable"><thead><tr><th>Date</th><th>'+c.ha+'</th><th>Séries</th><th>'+c.hb+'</th></tr></thead><tbody>'+
       pts.slice().reverse().map(function(p){return '<tr><td>'+dshort(p.d)+'</td><td>'+c.fa(p.a)+c.ua+'</td><td>'+p.n+'</td><td>'+c.fb(p.b)+c.ub+'</td></tr>'}).join("")+'</tbody></table>';
   }
@@ -1220,12 +1239,13 @@ function mgrHtml(){
 }
 function medHtml(){
   var e=mEd,isNew=!e.id,kinds=[["w","Charge et reps"],["t","Durée"],["d","Durée et distance"]];
-  var chips=Object.keys(NAME).map(function(k){var st=e.mu[k]==="p"?"p":e.mu[k]==="s"?"s":"";return '<button class="mchip '+st+'" data-a="mmu" data-k="'+k+'" aria-label="'+esc(NAME[k])+(st==="p"?', principal':st==="s"?', secondaire':'')+'">'+esc(NAME[k])+(st==="p"?' ●':st==="s"?' ◐':'')+'</button>'}).join("");
+  function chip(k){var st=e.mu[k]==="p"?"p":e.mu[k]==="s"?"s":"";return '<button class="mchip '+st+'" data-a="mmu" data-k="'+k+'" aria-label="'+esc(NAME[k])+(st==="p"?', principal':st==="s"?', secondaire':'')+'">'+esc(NAME[k])+(st==="p"?' ●':st==="s"?' ◐':'')+'</button>'}
+  var chips=GROUPS.map(function(g){return '<div class="gch"><span class="label">'+g[0]+'</span><div class="mchips">'+g[1].map(chip).join("")+'</div></div>'}).join("");
   var kindHtml=isNew?'<span class="label">Type de mesure</span><div class="pills" role="group" aria-label="Type">'+kinds.map(function(k){return '<button class="pill" data-a="mkind" data-k="'+k[0]+'" aria-pressed="'+(e.kind===k[0])+'">'+k[1]+'</button>'}).join("")+'</div>':'';
   var del=!isNew?(mdelAsk?'<div class="xpline"><span>La machine disparaît des listes, ton historique est conservé.</span></div><button class="btn" style="background:#b3261e;color:#fff" data-a="mdelyes">Confirmer la suppression</button><button class="btn ghost" data-a="mdelno">Garder</button>':'<button class="lk" data-a="mdelask">Supprimer cette machine</button>'):'';
   return edPop(isNew?"Nouvelle machine":"Modifier la machine",
     '<label class="fld"><span>Nom</span><input id="medname" maxlength="60" value="'+esc(e.name)+'" placeholder="ex. Leg press" autocomplete="off"></label>'+kindHtml+
-    '<span class="label">Muscles travaillés</span><p class="cap" style="margin:0">Touche une fois : principal ●. Deux fois : secondaire ◐. Trois fois : retiré.</p><div class="mchips">'+chips+'</div>'+
+    '<span class="label">Muscles travaillés</span><p class="cap" style="margin:0">Touche une fois : principal ●. Deux fois : secondaire ◐. Trois fois : retiré.</p><div class="gchs">'+chips+'</div>'+
     '<button class="btn" data-a="msave">Enregistrer</button>'+del,"mclose");
 }
 function pgrHtml(){
