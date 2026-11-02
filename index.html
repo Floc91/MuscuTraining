@@ -136,6 +136,7 @@ nav button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
 .hp i{display:block;height:100%;background:#d93a3a;border-radius:8px;transition:width .5s}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .btn.gold{background:var(--gold);color:#2a1f00}
+.gb{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:52px;font-size:17px}
 .btn{background:var(--accent);color:var(--accent-ink);font-weight:600;border-radius:8px;padding:12px 16px;min-height:48px}
 .btn.ghost{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
 .btn[disabled]{opacity:.45;cursor:default}
@@ -601,7 +602,7 @@ function undo(){
   if(s.pr)S.prs=Math.max(0,S.prs-1);
   save();render();
 }
-function renameHaut(s){s.sessions.forEach(function(x){if(x.name==='Jambes')x.name='Bas';if(x.name==='Haut A')x.name='Haut';if(x.name==='Haut B'||(x.id==='h2026-10-29'&&x.name==='Haut'))x.name='Full body'});var m=s.draft&&s.draft.meta;if(m){if(m.name==='Jambes')m.name='Bas';if(m.name==='Haut A')m.name='Haut';if(m.name==='Haut B')m.name='Full body'}}
+function renameHaut(s){var CF=[[", date estimée",""],[", séries et reps estimés à corriger au besoin",""],[" Séries abducteurs et adducteurs estimées.",""]];s.sessions.forEach(function(x){if(x.comment)CF.forEach(function(p){if(x.comment.indexOf(p[0])>=0)x.comment=x.comment.replace(p[0],p[1])})});s.sessions.forEach(function(x){if(x.name==='Jambes')x.name='Bas';if(x.name==='Haut A')x.name='Haut';if(x.name==='Haut B'||(x.id==='h2026-10-29'&&x.name==='Haut'))x.name='Full body'});var m=s.draft&&s.draft.meta;if(m){if(m.name==='Jambes')m.name='Bas';if(m.name==='Haut A')m.name='Haut';if(m.name==='Haut B')m.name='Full body'}}
 function sortSessions(){S.sessions.sort(function(a,c){return a.d<c.d?-1:a.d>c.d?1:0})}
 function finish(){
   if(!S.draft.sets.length)return;
@@ -855,7 +856,7 @@ function progresHtml(){
     var names={};s.sets.forEach(function(x){var m=mach(x.m);if(m)names[m.name]=1});
     return '<div class="row"><span>'+esc(Object.keys(names).join(", "))+'</span><span class="num">'+s.d.slice(8)+'/'+s.d.slice(5,7)+' · '+s.sets.length+' séries</span></div>';
   }).join("");
-  return '<div class="two"><button class="btn gold" data-a="achopen">Succès · '+nA+' / '+ACH.length+'</button><button class="btn ghost" data-a="bkopen">Sauvegarde</button></div><h2>Records par machine</h2><div class="list">'+cards+'</div>'+
+  return '<button class="btn gold gb" data-a="achopen"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3"/><path d="M12 14v4M8 20h8"/></svg>Succès · '+nA+' / '+ACH.length+'</button><h2>Records par machine</h2><div class="list">'+cards+'</div>'+
     '<h2>Dernières séances</h2>'+(hist?'<div class="hist">'+hist+'</div>':'<div class="empty">Termine ta première séance pour la voir ici.</div>')+
     '<div class="bw"><label for="bw" class="label">Poids de corps (kg)</label><input id="bw" inputmode="decimal" value="'+fmt(S.bw)+'"><button class="btn ghost" data-a="bw">OK</button></div>';
 }
@@ -875,7 +876,7 @@ function historiqueHtml(){
   var list=S.sessions.slice().reverse().map(function(se){
     var gs=groups(se.sets),names=gs.map(function(g){var m=mach(g.id);return m?m.name:g.id});
     var shown=names.slice(0,3).join(", ")+(names.length>3?" et "+(names.length-3)+" autres":"");
-    return '<button class="hrow" data-a="sess" data-id="'+esc(se.id)+'"><span class="l1r"><span class="dt">'+esc(dlabel(se.d))+(se.name?' · '+esc(se.name):'')+(se.ap?'<span class="tag-est">estimé</span>':'')+'</span><span class="num" style="font-size:20px">'+metric(se.sets)+'</span></span>'+
+    return '<button class="hrow" data-a="sess" data-id="'+esc(se.id)+'"><span class="l1r"><span class="dt">'+esc(dlabel(se.d))+(se.name?' · '+esc(se.name):'')+'</span><span class="num" style="font-size:20px">'+metric(se.sets)+'</span></span>'+
       '<span class="sm">'+esc(shown)+'</span><span class="sm">'+se.sets.length+' séries · '+gs.length+' exercices</span>'+
       (se.comment?'<span class="cm">Commentaire : '+esc(se.comment.length>90?se.comment.slice(0,90)+"…":se.comment)+'</span>':'')+'</button>';
   }).join("");
@@ -908,7 +909,7 @@ function detailHtml(){
   var del=det.del?'<button class="btn" style="background:#b3261e;color:#fff" data-a="dconfirm">Confirmer la suppression de la séance</button><button class="btn ghost" data-a="dcancel">Annuler</button>':'<button class="btn ghost" data-a="ddel">Supprimer la séance</button>';
   return '<div class="sheet-bg" data-a="pbg"><div class="sheet" role="dialog" aria-label="Détail de la séance">'+
     '<div class="sheet-top"><h2 class="cap1">'+esc(dlabel(se.d))+'</h2><button class="x" data-a="dclose" aria-label="Fermer">×</button></div>'+
-    '<div class="xpline"><span>'+se.sets.length+' séries · '+metric(se.sets)+(se.ap?' · certaines données sont estimées':'')+'</span></div>'+
+    '<div class="xpline"><span>'+se.sets.length+' séries · '+metric(se.sets)+'</span></div>'+
     '<div class="fld"><label class="fld"><span>Nom de la séance</span><input data-f="sname" data-s="'+esc(se.id)+'" maxlength="40" value="'+esc(se.name||"")+'" placeholder="Nom de la séance" autocomplete="off"></label><label class="fld" style="margin-top:10px"><span>Date</span><input type="date" data-f="sdate" data-s="'+esc(se.id)+'" max="'+today()+'" value="'+esc(se.d)+'"></label></div>'+
     '<div class="stage">'+figs(lv,false,null)+'<p class="cap">'+(names.length?'<b>Muscles sollicités :</b> '+esc(names.join(", "))+'.':'')+'</p></div>'+
     '<div><label class="label" for="cmdet">Commentaire de la séance</label><textarea id="cmdet" data-f="cm" data-s="'+esc(se.id)+'" rows="4" maxlength="600" placeholder="Sensations, douleurs, fatigue, ce que tu veux retenir">'+esc(se.comment||"")+'</textarea></div>'+
@@ -982,7 +983,7 @@ function claudeText(n){
     if(se.comment)L.push("Commentaire : "+se.comment);
     L.push("");
   }
-  ses.forEach(function(se){block(se,"Séance du "+se.d+(se.name?" ("+se.name+")":"")+(se.ap?" (données estimées)":""))});
+  ses.forEach(function(se){block(se,"Séance du "+se.d+(se.name?" ("+se.name+")":""))});
   if(S.draft.sets.length)block({sets:S.draft.sets,rates:S.draft.rates,comment:S.draft.comment},"Séance en cours, non terminée");
   return L.join("\n");
 }
@@ -1104,7 +1105,7 @@ function render(){
   var tabs=[["seance","Séance"],["muscles","Muscles"],["histo","Historique"],["progres","Progrès"]].map(function(t){
     return '<button role="tab" data-a="tab" data-t="'+t[0]+'" aria-selected="'+(tab===t[0])+'">'+t[1]+'</button>'}).join("");
   app.innerHTML=headerHtml()+'<nav role="tablist">'+tabs+'</nav>'+
-    (tab==="seance"?seanceHtml():tab==="muscles"?musclesHtml():tab==="histo"?historiqueHtml():progresHtml())+
+    (tab==="seance"?seanceHtml():tab==="muscles"?musclesHtml():tab==="histo"?historiqueHtml():progresHtml()+'<h2>Sauvegarde et partage</h2>'+backupHtml())+
     '<div class="foot">'+esc(status)+(needBackup()?' · pense à enregistrer une sauvegarde (onglet Progrès)':'')+' · v'+APP_VERSION+'</div>';
   var ni=document.getElementById("newm");if(ni&&kv)ni.value=kv;
   var ns=document.getElementById("newmu");if(ns&&kk)ns.value=kk;
