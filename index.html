@@ -249,11 +249,11 @@ var MU={
   calf:{calves:"p"}
 };
 var PROG={mon:["press","curl","ext","abd","add","calf","plank","rower"],wed:["run","rower","plank"],long:["run","rower"],
-  tue:["chest","lat","row","rfly","pfly","chestclose","rower","plank"],
-  thu:["row","lat","chest","pfly","rfly","chestclose","tri","press","add","abd","calf","rower","plank"]};
-var PROGN={mon:"Jambes",tue:"Haut A",wed:"Cardio",thu:"Haut B",long:"Sortie longue",all:"Séance libre"};
+  tue:["chest","lat","row","rfly","pfly","chestclose","tri","press","add","abd","calf","rower","plank"],
+  thu:null};
+var PROGN={mon:"Jambes",tue:"Haut",wed:"Cardio",thu:"Haut",long:"Sortie longue",all:"Séance libre"};
 var DAYN={mon:"lundi",tue:"mardi",wed:"mercredi",thu:"jeudi"};
-var TPL=["mon","tue","thu","wed","long","all"];
+var TPL=["mon","tue","wed","long","all"];
 var nw={tpl:"all",name:"",d:null}, discardAsk=false;
 
 /* ---------- silhouette (moitié gauche, miroir pour la droite) ---------- */
@@ -327,7 +327,7 @@ function seed(){
 }
 var seededNow=false, det=null, chartId=null, bk={msg:"",text:"",pending:null,info:""};
 var S=seed(), loaded=false, dbDoc=null, tab="seance", sh=null, status="", rng="today", pickM=null;
-var prog={1:"mon",2:"tue",3:"wed",4:"thu"}[new Date().getDay()]||"all";
+var prog={1:"mon",2:"tue",3:"wed",4:"tue"}[new Date().getDay()]||"all";
 
 /* ---------- historique de départ ---------- */
 function R(n,m,w,r){var a=[];for(var i=0;i<n;i++)a.push([m,w,r]);return a}
@@ -391,7 +391,7 @@ function flush(){
 }
 function adopt(d){
   var s=seed();
-  if(!d||typeof d!=="object"){ensureSeed(s);return s}
+  if(!d||typeof d!=="object"){ensureSeed(s);renameHaut(s);return s}
   if(Array.isArray(d.machines)&&d.machines.length){
     s.machines=d.machines;
     var have={};s.machines.forEach(function(m){have[m.id]=1});
@@ -404,7 +404,7 @@ function adopt(d){
   if(typeof d.bw==="number")s.bw=d.bw;
   if(typeof d.prs==="number")s.prs=d.prs;
   if(d.seedv)s.seedv=d.seedv;else if(d.seeded)s.seedv=1;
-  ensureSeed(s);
+  ensureSeed(s);renameHaut(s);
   return s;
 }
 (function init(){
@@ -574,6 +574,7 @@ function undo(){
   if(s.pr)S.prs=Math.max(0,S.prs-1);
   save();render();
 }
+function renameHaut(s){s.sessions.forEach(function(x){if(x.name==='Haut A'||x.name==='Haut B')x.name='Haut'});if(s.draft&&s.draft.meta&&/^Haut [AB]$/.test(s.draft.meta.name))s.draft.meta.name='Haut'}
 function sortSessions(){S.sessions.sort(function(a,c){return a.d<c.d?-1:a.d>c.d?1:0})}
 function finish(){
   if(!S.draft.sets.length)return;
@@ -589,7 +590,7 @@ function finish(){
 function planned(){
   var dow=new Date().getDay(),td=today(),names=S.sessions.filter(function(x){return x.d===td}).map(function(x){return x.name});
   for(var i=0;i<7;i++){
-    var k={1:"mon",2:"tue",3:"wed",4:"thu"}[(dow+i)%7];
+    var k={1:"mon",2:"tue",3:"wed",4:"tue"}[(dow+i)%7];
     if(!k)continue;
     if(i===0&&names.indexOf(PROGN[k])>=0)continue;
     return {k:k,when:i===0?"aujourd'hui":i===1?"demain":DAYN[k]};
@@ -654,7 +655,7 @@ function seanceHtml(){
     '<label class="fld"><span>Date de la séance</span><input type="date" id="sdt" data-f="mdate" max="'+td2+'" value="'+esc(meta.d)+'"></label>'+
     (meta.d!==td2?'<div class="xpline"><span>Cette séance sera enregistrée au '+esc(dlabel(meta.d))+'.</span></div>':'')+
     (discardAsk?'<div class="xpline"><span>Les séries saisies seront perdues.</span></div><button class="btn" style="background:#b3261e;color:#fff" data-a="mdiscardyes">Confirmer l\'annulation</button><button class="btn ghost" data-a="mdiscardno">Continuer la séance</button>':'<button class="lk" data-a="mdiscard">Annuler cette séance</button>')+'</section>';
-  var pills=['mon','tue','thu','wed','long'].map(function(k){return '<button class="pill" data-a="prog" data-p="'+k+'" aria-pressed="'+(prog===k)+'">'+esc(PROGN[k])+'</button>'}).join("")+
+  var pills=['mon','tue','wed','long'].map(function(k){return '<button class="pill" data-a="prog" data-p="'+k+'" aria-pressed="'+(prog===k)+'">'+esc(PROGN[k])+'</button>'}).join("")+
     '<button class="pill" data-a="prog" data-p="all" aria-pressed="'+(prog==="all")+'">Tout</button>';
   var ms=S.machines.filter(function(m){return !m.hidden&&(prog==="all"||(PROG[prog]||[]).indexOf(m.id)>=0||/^m\d+$/.test(m.id))});
   var list=ms.map(function(m){
