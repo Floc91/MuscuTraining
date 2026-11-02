@@ -503,7 +503,7 @@ function adopt(d){
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 21:05";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 21:11";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -965,7 +965,7 @@ function progresHtml(){
   var vis=S.machines.filter(function(m){return !m.hidden});
   function card(m){
     var b=bestSet(m.id,false);
-    return '<div class="pr-card" role="button" tabindex="0" data-a="chart" data-id="'+esc(m.id)+'" style="cursor:pointer"><div class="nm">'+esc(m.name)+'<div class="label">Record · touche pour les courbes</div></div>'+
+    return '<div class="pr-card" role="button" tabindex="0" data-a="chart" data-id="'+esc(m.id)+'" style="cursor:pointer"><div class="nm">'+esc(m.name)+'</div>'+
       '<div class="rec num">'+(b?fmtSet(b):'—')+'</div>'+(lastRate(m.id)?'<div class="xpline" style="grid-column:1/-1"><span>Dernier ressenti : '+lastRate(m.id)+'/5 ('+RL[lastRate(m.id)].toLowerCase()+')</span></div>':'')+spark(m.id)+'</div>';
   }
   var cards=GROUPS.concat([["Autres",[]]]).map(function(g,gi){
