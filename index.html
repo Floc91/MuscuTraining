@@ -518,7 +518,7 @@ function adopt(d){
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"03/11 00:20";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"03/11 00:25";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -832,7 +832,8 @@ function seanceHtml(){
     var lastTxt=ls?(kind==="w"?"Dernière séance : "+ls.length+" × "+ls[0].r+" reps":"Dernière fois : "+fmtSet(ls[ls.length-1])):"Pas encore de séance";
     var wp=S.draft.wip[m.id],sub=wp&&wp.length?"En cours : "+wp.length+" série"+(wp.length>1?"s":"")+" saisie"+(wp.length>1?"s":""):lastTxt+(ls&&lastRate(m.id)?" · ressenti "+lastRate(m.id)+"/5":"");
     var nn=muNames(m.id),mus=nn.p.concat(nn.s);
-    var right=kind==="w"?fmt(m.w)+' <small>kg</small>':(ls?fmtDur(ls[ls.length-1].t):'—');
+    var mine=S.draft.sets.filter(function(x){return x.m===m.id}),tg=target(m.id);
+    var right=kind==="w"?fmt(mine.length?mine[mine.length-1].w:tg.w)+' <small>kg</small>':fmtDur(mine.length?mine[mine.length-1].t:tg.row.t);
     return '<button class="mach" data-a="open" data-id="'+esc(m.id)+'"><span class="nm">'+esc(m.name)+
       (mus.length?'<span class="mus">'+esc(mus.join(" · "))+'</span>':'')+'<span class="sub">'+esc(sub)+'</span></span>'+
       (done?'<span class="badge-n" aria-label="'+done+' séries">'+done+'</span>':"")+
