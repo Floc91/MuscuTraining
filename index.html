@@ -516,7 +516,7 @@ function adopt(d){
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 23:59";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"03/11 00:02";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -1357,6 +1357,7 @@ var topNext=false;
 function render(){
   var sy=window.scrollY||window.pageYOffset||0;
   var shEl=document.querySelector("#sheet .sheet"),shY=shEl?shEl.scrollTop:0,shId=shEl?shEl.getAttribute("data-sid"):null;
+  var pEl=document.querySelector("#pop .sheet"),pY=pEl?pEl.scrollTop:0,pKey=pEl?pEl.getAttribute("aria-label"):null;
   var app=document.getElementById("app");
   var keep=document.getElementById("newm"),kv=keep?keep.value:"",ks=document.getElementById("newmu"),kk=ks?ks.value:"";
   var a0=document.activeElement,aid=a0&&/^(cmd|cmdet|pst)$/.test(a0.id||"")?a0.id:null,av=aid?a0.value:null,as=aid?a0.selectionStart:0;
@@ -1372,6 +1373,7 @@ function render(){
   document.getElementById("sheet").innerHTML=sheetHtml();
   document.getElementById("pop").innerHTML=popHtml();
   if(aid){var ae=document.getElementById(aid);if(ae){ae.value=av;ae.focus({preventScroll:true});try{ae.setSelectionRange(as,as)}catch(_){}}}
+  var pEl2=document.querySelector("#pop .sheet");if(pEl2&&pY&&pEl2.getAttribute("aria-label")===pKey)pEl2.scrollTop=pY;
   var shEl2=document.querySelector("#sheet .sheet");if(shEl2&&shY&&sh&&shEl2.getAttribute("data-sid")===shId)shEl2.scrollTop=shY;
   if(topNext){topNext=false;window.scrollTo(0,0)}else window.scrollTo(0,sy);
 }
