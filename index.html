@@ -292,13 +292,13 @@ var NAME={
   abs:"Abdominaux", obliques:"Obliques", traps:"Trapèzes",
   lats:"Grand dorsal", midback:"Milieu du dos", lowback:"Lombaires",
   glutes:"Fessiers", abd:"Abducteurs", add:"Adducteurs",
-  quads:"Quadriceps", hams:"Ischio-jambiers", calves:"Mollets"
+  quads:"Quadriceps", hams:"Ischio-jambiers", calves:"Mollets", cardio:"Cardio"
 };
 /* p = principal, s = secondaire */
 var MU={
   plank:{abs:"p",obliques:"s",lowback:"s",delt_ant:"s"},
-  rower:{quads:"s",hams:"s",glutes:"s",lats:"s",midback:"s",biceps:"s",abs:"s"},
-  run:{calves:"p",quads:"s",hams:"s",glutes:"s"},
+  rower:{cardio:"p"},
+  run:{cardio:"p"},
   chest:{pecs:"p",delt_ant:"s",triceps:"s"},
   chestclose:{triceps:"p",pecs:"s",delt_ant:"s"},
   pfly:{pecs:"p",delt_ant:"s"},
@@ -491,7 +491,7 @@ function adopt(d){
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 20:34";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 20:40";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -760,7 +760,7 @@ function headerHtml(){
 }
 function legendHtml(){return '<div class="legend" aria-hidden="true"><span><i class="l1"></i>Un peu</span><span><i class="l2"></i>Bien</span><span><i class="l3"></i>À fond</span></div>'}
 function litNames(lv){
-  return Object.keys(lv).filter(function(k){return lv[k]>0}).sort(function(a,b){return lv[b]-lv[a]||NAME[a].localeCompare(NAME[b],"fr")}).map(function(k){return NAME[k]});
+  return Object.keys(lv).filter(function(k){return lv[k]>0&&k!=="cardio"}).sort(function(a,b){return lv[b]-lv[a]||NAME[a].localeCompare(NAME[b],"fr")}).map(function(k){return NAME[k]});
 }
 function seanceHtml(){
   var sc0=muscleScores("today"),lv=levels(sc0,"today"),names=litNames(lv),meta=S.draft.meta;
@@ -821,14 +821,14 @@ function musclesHtml(){
   var rp=[["today","Aujourd'hui"],["week","7 jours"],["all","Depuis le début"]].map(function(r){return '<button class="pill" data-a="rng" data-r="'+r[0]+'" aria-pressed="'+(rng===r[0])+'">'+r[1]+'</button>'}).join("");
   var cap;
   if(pickM){
-    var by=S.machines.filter(function(m){return muOf(m.id)[pickM]}).map(function(m){return m.name+(muOf(m.id)[pickM]==="p"?" (principal)":"")});
+    var by=S.machines.filter(function(m){return muOf(m.id)[pickM]}).map(function(m){return m.name+(muOf(m.id)[pickM]==="p"&&pickM!=="cardio"?" (principal)":"")});
     cap='<b>'+esc(NAME[pickM])+'</b> : '+(by.length?esc(by.join(", "))+'.':'aucun exercice ne le travaille pour l\'instant.');
-  }else cap=names.length?'<b>'+names.length+' muscles sollicités.</b> Touche un muscle pour voir quelles machines le travaillent.':'Rien à afficher sur cette période. Touche un muscle pour voir quelles machines le travaillent, ou valide des séries.';
+  }else cap=names.length?'<b>'+names.length+' muscles sollicités.</b> Touche un muscle pour voir quelles machines le travaillent.':'Rien à afficher sur cette période. Touche un muscle (sur le schéma ou dans la liste) pour voir quelles machines le travaillent, ou valide des séries.';
   var keys=Object.keys(NAME).sort(function(a,b){return (sc[b]||0)-(sc[a]||0)||NAME[a].localeCompare(NAME[b],"fr")});
   var mx=Math.max.apply(null,keys.map(function(k){return sc[k]||0}).concat([1]));
   var rows=keys.map(function(k){
     var v=sc[k]||0;
-    return '<div class="mrow'+(pickM===k?' sel':'')+'"><span class="nm">'+esc(NAME[k])+'</span><span class="bar2"><i style="width:'+Math.round(v/mx*100)+'%"></i></span><span class="n num">'+(v?fmt(v):'—')+'</span></div>';
+    return '<div class="mrow'+(pickM===k?' sel':'')+'" data-a="mu" data-m="'+k+'" role="button" tabindex="0" style="cursor:pointer"><span class="nm">'+esc(NAME[k])+'</span><span class="bar2"><i style="width:'+Math.round(v/mx*100)+'%"></i></span><span class="n num">'+(v?fmt(v):'—')+'</span></div>';
   }).join("");
   return '<div class="pills" role="group" aria-label="Période">'+rp+'</div>'+
     '<section class="stage">'+figs(lv,true,pickM)+legendHtml()+'<p class="cap" aria-live="polite">'+cap+'</p></section>'+
@@ -899,7 +899,7 @@ var ACH=[
  {id:"t10",cat:"Force",ic:"10t",name:"10 tonnes soulevées",desc:"Charge × reps × séries, cumulé. À peu près deux éléphants.",ev:function(C){return aCum(C,function(o){return o.ton},10000)}},
  {id:"t50",cat:"Force",ic:"50t",name:"50 tonnes soulevées",desc:"À peu près un Airbus A320 à vide.",ev:function(C){return aCum(C,function(o){return o.ton},50000)}},
  {id:"t100",cat:"Force",ic:"100t",name:"100 tonnes soulevées",desc:"Une baleine bleue entière.",ev:function(C){return aCum(C,function(o){return o.ton},100000)}},
- {id:"full",cat:"Force",ic:"◉",name:"Silhouette complète",desc:"Faire travailler presque tous les muscles de la silhouette dans la même semaine.",ev:function(C){var m=aWeekCounts(C),tot=Object.keys(NAME).length,goal=Math.ceil(tot*.8),b=0,dt=null;Object.keys(m).forEach(function(k){var c=Object.keys(m[k].mu).length;if(c>b)b=c;if(c>=goal&&(dt===null||m[k].d<dt))dt=m[k].d});return {date:dt,cur:Math.min(b,goal),max:goal}}},
+ {id:"full",cat:"Force",ic:"◉",name:"Silhouette complète",desc:"Faire travailler presque tous les muscles de la silhouette dans la même semaine.",ev:function(C){var m=aWeekCounts(C),tot=Object.keys(NAME).length-1,goal=Math.ceil(tot*.8),b=0,dt=null;Object.keys(m).forEach(function(k){var c=Object.keys(m[k].mu).filter(function(x){return x!=="cardio"}).length;if(c>b)b=c;if(c>=goal&&(dt===null||m[k].d<dt))dt=m[k].d});return {date:dt,cur:Math.min(b,goal),max:goal}}},
 
  {id:"r1",cat:"Course",ic:"1k",name:"Premier kilomètre",desc:"1 km sur le tapis en une séance.",ev:function(C){return aBest(C,kmOf("run"),1)}},
  {id:"r5",cat:"Course",ic:"5k",name:"Les 5 bornes",desc:"5 km en une sortie.",ev:function(C){return aBest(C,kmOf("run"),5)}},
@@ -1481,7 +1481,7 @@ document.addEventListener("change",function(e){
 });
 document.addEventListener("keydown",function(e){
   var t=e.target;
-  if((e.key==="Enter"||e.key===" ")&&t.classList&&(t.classList.contains("mu")||t.classList.contains("pr-card"))){e.preventDefault();act(t)}
+  if((e.key==="Enter"||e.key===" ")&&t.classList&&(t.classList.contains("mu")||t.classList.contains("mrow")||t.classList.contains("pr-card"))){e.preventDefault();act(t)}
   if(e.key==="Escape"){if(chartId)chartId=null;else if(det)det=null;else if(popG)popG=false;else if(mEd||pEd||popP||popM){edClose()}else if(pk)pk=false;else if(popS)popS=false;else if(popL)popL=false;else if(popA||popB){popA=false;popB=false}else if(sh)sh=null;else return;render()}
 });
 render();
