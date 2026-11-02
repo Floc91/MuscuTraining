@@ -517,7 +517,7 @@ function adopt(d){
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"03/11 00:04";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"03/11 00:06";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -1089,11 +1089,11 @@ function chartHtml(){
   var rows=chartSets(chartId),body;
   if(!rows.length)body='<div class="empty">Pas encore de séance sur cet exercice. Les courbes apparaîtront après le premier exercice terminé.</div>';
   else{
-    var c=chartCfg(rows),pts=rows.map(function(r){return {d:r.d,a:c.a(r.ss),b:c.b(r.ss),n:r.ss.length}});
+    var c=chartCfg(rows),pts=rows.map(function(r){var rp=r.ss.filter(function(x){return !isT(x)}).map(function(x){return x.r}),same=rp.length&&rp.every(function(v){return v===rp[0]});return {d:r.d,a:c.a(r.ss),b:c.b(r.ss),n:r.ss.length,rs:rp.length?(same?rp.length+' × '+rp[0]:rp.join(' · ')):String(r.ss.length)}});
     body='<div class="chartbox"><span class="label">'+esc(c.ta)+'</span>'+chartSvg(pts,"a",c.ta,c.fa)+'<span class="mnote">'+esc(c.sa)+'</span></div>'+
       '<div class="chartbox"><span class="label">'+esc(c.tb)+'</span>'+chartSvg(pts,"b",c.tb,c.fb)+'<span class="mnote">'+esc(c.sb)+'</span></div>'+
-      '<table class="ptable"><thead><tr><th>Date</th><th>'+c.ha+'</th><th>Séries</th><th>'+c.hb+'</th></tr></thead><tbody>'+
-      pts.slice().reverse().map(function(p){return '<tr><td>'+dshort(p.d)+'</td><td>'+c.fa(p.a)+c.ua+'</td><td>'+p.n+'</td><td>'+c.fb(p.b)+c.ub+'</td></tr>'}).join("")+'</tbody></table>';
+      '<table class="ptable"><thead><tr><th>Date</th><th>'+c.ha+'</th><th>'+(c.ha==='Charge'?'Séries × reps':'Séries')+'</th><th>'+c.hb+'</th></tr></thead><tbody>'+
+      pts.slice().reverse().map(function(p){return '<tr><td>'+dshort(p.d)+'</td><td>'+c.fa(p.a)+c.ua+'</td><td>'+p.rs+'</td><td>'+c.fb(p.b)+c.ub+'</td></tr>'}).join("")+'</tbody></table>';
   }
   return '<div class="sheet-bg top" data-a="pbg"><div class="sheet" role="dialog" aria-label="Courbes '+esc(m.name)+'">'+
     '<div class="sheet-top"><h2>'+esc(m.name)+'</h2><button class="x" data-a="cclose" aria-label="Fermer">×</button></div>'+body+'</div></div>';
