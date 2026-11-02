@@ -466,7 +466,7 @@ function adopt(d){
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 17:56";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 17:58";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -722,7 +722,7 @@ function headerHtml(){
   var xp=totalXp(),lv=level(xp),pct=Math.round((xp-lv.lo)/(lv.hi-lv.lo)*100);
   var c=weekCounts(),n=c[wk(today())]||0,st=streak(),dots="";
   for(var i=0;i<weekGoal(wk(today()));i++)dots+='<i class="'+(i<n?"on":"")+'"></i>';
-  return '<header><div class="top"><h1>Reps</h1><button class="lvl" data-a="lvlopen" aria-label="Voir les niveaux suivants">Niv. '+lv.L+'</button></div>'+
+  return '<header><div class="top"><h1><svg class="wm" viewBox="0 0 172 72" height="46" role="img" aria-label="Reps" fill="none" stroke="url(#wg)" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"><defs><linearGradient id="wg" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="172" y2="0"><stop offset="0" style="stop-color:var(--accent)"/><stop offset="1" stop-color="#27b5f5"/></linearGradient></defs><g transform="skewX(-10) translate(14 0)"><path d="M5 52V8H21Q33 8 33 20Q33 32 21 32H5M21 32L34 52"/><path transform="translate(44 0)" d="M29 8H5V52H29M5 30H25"/><path transform="translate(86 0)" d="M5 52V8H21Q33 8 33 20Q33 32 21 32H5"/><path transform="translate(126 0)" d="M29 14Q26 8 17 8Q5 8 5 18Q5 27 17 30Q29 33 29 42Q29 52 17 52Q7 52 4 45"/></g><path d="M12 64H160" stroke-width="3"/><path d="M5 58V70M10 60V68" stroke-width="3.5"/><path d="M167 58V70M162 60V68" stroke="#27b5f5" stroke-width="3.5"/></svg></h1><button class="lvl" data-a="lvlopen" aria-label="Voir les niveaux suivants">Niv. '+lv.L+'</button></div>'+
     '<div><div class="xp" role="progressbar" aria-valuenow="'+pct+'" aria-valuemin="0" aria-valuemax="100" aria-label="Progression vers le niveau suivant"><i style="width:'+pct+'%"></i></div>'+
     '<div class="xpline"><span>'+xp+' XP</span><span>Niveau '+(lv.L+1)+' à '+lv.hi+' XP</span></div></div>'+
     '<div class="stats"><button class="stat sbtn" data-a="stkopen" aria-label="Détail de la série"><span class="label">Série en cours</span><div class="num">'+st+' <small style="font-size:16px;color:var(--mute);font-family:var(--f-body);font-weight:500">sem.</small></div><div class="xpline">Au moins 1 séance par semaine</div></button>'+
