@@ -1,4 +1,4 @@
-/* Service worker du Carnet de salle.
+/* Service worker de Reps.
    Il ne touche jamais aux données (elles sont dans le stockage du navigateur) :
    il garde seulement une copie de l'appli pour qu'elle s'ouvre sans réseau. */
 const CACHE = "carnet-shell-v2";

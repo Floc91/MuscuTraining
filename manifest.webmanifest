@@ -1,7 +1,7 @@
 {
-  "name": "Carnet de salle",
-  "short_name": "Carnet",
-  "description": "Carnet d'entraînement : séances, charges, progression et muscles travaillés.",
+  "name": "Reps",
+  "short_name": "Reps",
+  "description": "Suivi d'entraînement : séances, charges, progression et muscles travaillés.",
   "lang": "fr",
   "start_url": "./index.html",
   "scope": "./",

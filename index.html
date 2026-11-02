@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Carnet de salle</title>
+<title>Reps</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#15191c">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Carnet">
+<meta name="apple-mobile-web-app-title" content="Reps">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
@@ -466,7 +466,7 @@ function adopt(d){
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 17:51";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 17:56";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -722,7 +722,7 @@ function headerHtml(){
   var xp=totalXp(),lv=level(xp),pct=Math.round((xp-lv.lo)/(lv.hi-lv.lo)*100);
   var c=weekCounts(),n=c[wk(today())]||0,st=streak(),dots="";
   for(var i=0;i<weekGoal(wk(today()));i++)dots+='<i class="'+(i<n?"on":"")+'"></i>';
-  return '<header><div class="top"><h1>Carnet de salle</h1><button class="lvl" data-a="lvlopen" aria-label="Voir les niveaux suivants">Niv. '+lv.L+'</button></div>'+
+  return '<header><div class="top"><h1>Reps</h1><button class="lvl" data-a="lvlopen" aria-label="Voir les niveaux suivants">Niv. '+lv.L+'</button></div>'+
     '<div><div class="xp" role="progressbar" aria-valuenow="'+pct+'" aria-valuemin="0" aria-valuemax="100" aria-label="Progression vers le niveau suivant"><i style="width:'+pct+'%"></i></div>'+
     '<div class="xpline"><span>'+xp+' XP</span><span>Niveau '+(lv.L+1)+' à '+lv.hi+' XP</span></div></div>'+
     '<div class="stats"><button class="stat sbtn" data-a="stkopen" aria-label="Détail de la série"><span class="label">Série en cours</span><div class="num">'+st+' <small style="font-size:16px;color:var(--mute);font-family:var(--f-body);font-weight:500">sem.</small></div><div class="xpline">Au moins 1 séance par semaine</div></button>'+
@@ -1028,7 +1028,7 @@ function chartHtml(){
 function backupJson(){return JSON.stringify({app:"carnet-salle",version:3,exported:new Date().toISOString(),data:S},null,2)}
 function claudeText(n){
   var ses=S.sessions.slice();if(n)ses=ses.slice(-n);
-  var L=["Carnet de salle, export du "+today()+" ("+ses.length+" séance"+(ses.length>1?"s":"")+")",""];
+  var L=["Reps, export du "+today()+" ("+ses.length+" séance"+(ses.length>1?"s":"")+")",""];
   function block(se,title){
     L.push(title);
     groups(se.sets).forEach(function(g){

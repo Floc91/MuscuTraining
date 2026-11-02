@@ -1,4 +1,4 @@
-Carnet de salle : application installable (PWA)
+Reps : application installable (PWA)
 
 Contenu : index.html, sw.js, manifest.webmanifest et les icônes.
 Ces fichiers doivent être publiés ensemble, à la racine d'un site en https
