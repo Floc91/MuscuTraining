@@ -439,7 +439,7 @@ function adopt(d){
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 17:17";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 17:21";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -855,12 +855,7 @@ function progresHtml(){
       '<div class="rec num">'+(b?fmtSet(b):'—')+'</div>'+(lastRate(m.id)?'<div class="xpline" style="grid-column:1/-1"><span>Dernier ressenti : '+lastRate(m.id)+'/5 ('+RL[lastRate(m.id)].toLowerCase()+')</span></div>':'')+spark(m.id)+'</div>';
   }).join("");
   var nA=Object.keys(achIds()).length;
-  var hist=S.sessions.slice(-6).reverse().map(function(s){
-    var names={};s.sets.forEach(function(x){var m=mach(x.m);if(m)names[m.name]=1});
-    return '<div class="row"><span>'+esc(Object.keys(names).join(", "))+'</span><span class="num">'+s.d.slice(8)+'/'+s.d.slice(5,7)+' · '+s.sets.length+' séries</span></div>';
-  }).join("");
   return '<button class="btn gold gb" data-a="achopen"><svg class="trophy" width="34" height="34" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="tgd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3b0"/><stop offset=".5" stop-color="#ffc928"/><stop offset="1" stop-color="#d98c00"/></linearGradient></defs><g stroke="#3a2600" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M9 8H4.5c0 5 1.8 7.4 5.2 8" fill="none"/><path d="M23 8h4.5c0 5-1.8 7.4-5.2 8" fill="none"/><path d="M9 4h14v7.5a7 7 0 0 1-14 0z" fill="url(#tgd)"/><path d="M14 18.5h4V23h-4z" fill="url(#tgd)"/><path d="M10.5 23h11l1.5 5h-14z" fill="url(#tgd)"/></g><path d="M16 7.2l1.3 2.7 2.9.4-2.1 2 .5 2.9-2.6-1.4-2.6 1.4.5-2.9-2.1-2 2.9-.4z" fill="#fff" stroke="#3a2600" stroke-width="1" stroke-linejoin="round"/><path d="M27.5 2.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7zM3.5 14l.5 1.2 1.2.5-1.2.5-.5 1.2-.5-1.2-1.2-.5 1.2-.5z" fill="#fff" stroke="#3a2600" stroke-width=".6" stroke-linejoin="round"/></svg>Succès · '+nA+' / '+ACH.length+'</button><h2>Records par machine</h2><div class="list">'+cards+'</div>'+
-    '<h2>Dernières séances</h2>'+(hist?'<div class="hist">'+hist+'</div>':'<div class="empty">Termine ta première séance pour la voir ici.</div>')+
     '<div class="bw"><label for="bw" class="label">Poids de corps (kg)</label><input id="bw" inputmode="decimal" value="'+fmt(S.bw)+'"><button class="btn ghost" data-a="bw">OK</button></div>'+'<button class="btn ghost gb2" data-a="bkopen"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v3h16v-3"/></svg>Sauvegarde et partage</button>';
 }
 function vol(sets){return sets.reduce(function(a,x){return a+(isT(x)?0:x.w*x.r)},0)}
@@ -1109,7 +1104,7 @@ function render(){
     return '<button role="tab" data-a="tab" data-t="'+t[0]+'" aria-selected="'+(tab===t[0])+'">'+t[1]+'</button>'}).join("");
   app.innerHTML=headerHtml()+'<nav role="tablist">'+tabs+'</nav>'+
     (tab==="seance"?seanceHtml():tab==="muscles"?musclesHtml():tab==="histo"?historiqueHtml():progresHtml())+
-    '<div class="foot">'+esc(status)+(needBackup()?' · pense à enregistrer une sauvegarde (onglet Progrès)':'')+' · v'+APP_VERSION+'</div>';
+    '<div class="foot">'+esc(status)+(needBackup()?' · pense à enregistrer une sauvegarde (en bas de Progrès)':'')+' · v'+APP_VERSION+'</div>';
   var ni=document.getElementById("newm");if(ni&&kv)ni.value=kv;
   var ns=document.getElementById("newmu");if(ns&&kk)ns.value=kk;
   var n=S.draft.sets.length;
