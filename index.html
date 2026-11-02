@@ -514,10 +514,11 @@ function adopt(d){
   else if((Array.isArray(d.machines)&&d.machines.length)||(Array.isArray(d.sessions)&&d.sessions.length))s.progs=legacyProgs();
   var exm={};s.machines.forEach(function(m){exm[m.id]=1});s.progs.forEach(function(p){p.machines=p.machines.filter(function(x){return exm[x]})});
   ensureSeed(s);renameHaut(s);
+  s.sessions.forEach(function(x){if(!x.rx){var n=x.rates?Object.keys(x.rates).length:0;if(n)x.xp=(x.xp||0)+5*n;x.rx=1}});
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"03/11 00:17";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"03/11 00:20";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -716,7 +717,7 @@ function finish(){
   if(!S.draft.sets.length)return;
   var meta=S.draft.meta||{d:today(),name:"Séance"};
   var xp=(S.draft.xp||0)+30,before=level(totalXp()).L,ab=achIds(),wkn0=weekCounts()[wk(meta.d)]||0;
-  S.sessions.push({id:Date.now(),d:meta.d,name:meta.name||"",sets:S.draft.sets,rates:S.draft.rates||{},comment:S.draft.comment||"",xp:xp});
+  S.sessions.push({id:Date.now(),d:meta.d,name:meta.name||"",sets:S.draft.sets,rates:S.draft.rates||{},comment:S.draft.comment||"",xp:xp,rx:1});
   sortSessions();
   S.draft={sets:[],xp:0,wip:{},rates:{},comment:"",meta:null};sh=null;pk=false;discardAsk=false;nw={tpl:"all",name:"",d:null};
   var after=level(totalXp()).L;
