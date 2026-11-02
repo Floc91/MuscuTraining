@@ -49,7 +49,8 @@ header{display:flex;flex-direction:column;gap:12px}
 h1{font-size:34px}
 .sbtn{text-align:left;color:inherit;font:inherit;cursor:pointer;display:block;width:100%}
 .wks{display:flex;gap:6px;flex-wrap:wrap}
-.wk{display:flex;flex-direction:column;align-items:center;gap:2px;width:34px}
+.wk{display:flex;flex-direction:column;align-items:center;gap:1px;width:38px;background:none;border:0;padding:2px 0;border-radius:8px}
+.wk.sel{background:var(--surface);outline:2px solid var(--accent)}
 .wk b{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:13px;border:2px solid var(--line);color:var(--mute)}
 .wk small{font-size:11px;color:var(--mute)}
 .wk.ok b{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
@@ -371,7 +372,7 @@ function seed(){
       m("press","Leg press",50,10),m("curl","Leg curl",25),m("ext","Leg extension",20),
       m("add","Adducteurs",20),m("abd","Abducteurs",25),m("calf","Mollets (leg press)",40,10),
       {id:"plank",name:"Gainage",w:0,step:5,kind:"t"},{id:"rower",name:"Rameur",w:0,step:5,kind:"d"},{id:"run",name:"Tapis de course",w:0,step:5,kind:"d"}],
-    sessions:[],draft:{sets:[],xp:0,wip:{},rates:{},comment:"",meta:null},prs:0,goal:2,off:[]};
+    sessions:[],draft:{sets:[],xp:0,wip:{},rates:{},comment:"",meta:null},prs:0,goal:2,off:[],goals:{}};
 }
 var seededNow=false, det=null, chartId=null, bk={msg:"",text:"",pending:null,info:""};
 var S=seed(), loaded=false, dbDoc=null, tab="seance", sh=null, status="", rng="today", pickM=null, pk=false, popA=false, popB=false, popL=false, popS=false;
@@ -452,13 +453,14 @@ function adopt(d){
   if(typeof d.bw==="number")s.bw=d.bw;
   if(typeof d.prs==="number")s.prs=d.prs;
   if(typeof d.goal==="number"&&d.goal>=1&&d.goal<=7)s.goal=d.goal;
+  if(d.goals&&typeof d.goals==='object'&&!Array.isArray(d.goals))s.goals=d.goals;
   if(Array.isArray(d.off))s.off=d.off.filter(function(x){return typeof x==="string"});
   if(d.seedv)s.seedv=d.seedv;else if(d.seeded)s.seedv=1;
   ensureSeed(s);renameHaut(s);
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 17:38";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 17:42";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -536,15 +538,16 @@ function level(xp){var L=Math.floor(Math.sqrt(xp/40))+1;return {L:L,lo:40*(L-1)*
 function wk(d){var x=new Date(d+"T12:00:00");x.setDate(x.getDate()-((x.getDay()+6)%7));return x.toLocaleDateString("sv")}
 function prevWk(k){var x=new Date(k+"T12:00:00");x.setDate(x.getDate()-7);return x.toLocaleDateString("sv")}
 function weekCounts(){var c={};S.sessions.forEach(function(s){var k=wk(s.d);c[k]=(c[k]||0)+1});return c}
+function weekGoal(k){var v=S.goals&&S.goals[k];return (typeof v==='number'&&v>=1&&v<=7)?v:goalN()}
 function goalN(){return Math.max(1,Math.min(7,S.goal||2))}
 function addDays(d,n){var x=new Date(d+"T12:00:00");x.setDate(x.getDate()+n);return x.toLocaleDateString("sv")}
 function weeksInfo(){
-  var c=weekCounts(),g=goalN(),cur=wk(today()),first=null,ks=Object.keys(c).sort();
+  var c=weekCounts(),cur=wk(today()),ks=Object.keys(c).sort();
   var out={weeks:[],streak:0,best:0,reach:{},jokerUsed:null};
   if(!ks.length)return out;
   var k=ks[0],run=0,jm={};
   while(k<=cur){
-    var n=c[k]||0,mo=k.slice(0,7),st;
+    var n=c[k]||0,mo=k.slice(0,7),st,g=weekGoal(k);
     if(n>=g){st="ok";run++;if(!out.reach[run])out.reach[run]=k}
     else if((S.off||[]).indexOf(k)>=0)st="off";
     else if(k===cur)st="cur";
@@ -652,7 +655,7 @@ function finish(){
   var after=level(totalXp()).L;
   save();render();
   var an=achIds(),nn=Object.keys(an).filter(function(k){return !ab[k]}).map(function(k){return an[k]});
-  toast((after>before?"Niveau "+after+" atteint !  +30 XP":"Séance terminée  +30 XP")+(nn.length?"  ·  Succès : "+nn.join(", "):"")+((wkn0<goalN()&&(weekCounts()[wk(meta.d)]||0)>=goalN())?"  ·  Objectif de la semaine atteint !":""),after>before||nn.length>0||(wkn0<goalN()&&(weekCounts()[wk(meta.d)]||0)>=goalN()));
+  toast((after>before?"Niveau "+after+" atteint !  +30 XP":"Séance terminée  +30 XP")+(nn.length?"  ·  Succès : "+nn.join(", "):"")+((wkn0<weekGoal(wk(meta.d))&&(weekCounts()[wk(meta.d)]||0)>=weekGoal(wk(meta.d)))?"  ·  Objectif de la semaine atteint !":""),after>before||nn.length>0||(wkn0<weekGoal(wk(meta.d))&&(weekCounts()[wk(meta.d)]||0)>=weekGoal(wk(meta.d))));
 }
 function planned(){
   var dow=new Date().getDay(),td=today(),names=S.sessions.filter(function(x){return x.d===td}).map(function(x){return x.name});
@@ -702,12 +705,12 @@ function setBw(){
 function headerHtml(){
   var xp=totalXp(),lv=level(xp),pct=Math.round((xp-lv.lo)/(lv.hi-lv.lo)*100);
   var c=weekCounts(),n=c[wk(today())]||0,st=streak(),dots="";
-  for(var i=0;i<goalN();i++)dots+='<i class="'+(i<n?"on":"")+'"></i>';
+  for(var i=0;i<weekGoal(wk(today()));i++)dots+='<i class="'+(i<n?"on":"")+'"></i>';
   return '<header><div class="top"><h1>Carnet de salle</h1><button class="lvl" data-a="lvlopen" aria-label="Voir les niveaux suivants">Niv. '+lv.L+'</button></div>'+
     '<div><div class="xp" role="progressbar" aria-valuenow="'+pct+'" aria-valuemin="0" aria-valuemax="100" aria-label="Progression vers le niveau suivant"><i style="width:'+pct+'%"></i></div>'+
     '<div class="xpline"><span>'+xp+' XP</span><span>Niveau '+(lv.L+1)+' à '+lv.hi+' XP</span></div></div>'+
-    '<div class="stats"><button class="stat sbtn" data-a="stkopen" aria-label="Détail de la série"><span class="label">Série en cours</span><div class="num">'+st+' <small style="font-size:16px;color:var(--mute);font-family:var(--f-body);font-weight:500">sem.</small></div><div class="xpline">Objectif : '+goalN()+' séance'+(goalN()>1?'s':'')+' par semaine</div></button>'+
-    '<div class="stat"><span class="label">Cette semaine</span><div class="num">'+n+'/'+goalN()+'</div><div class="dots" aria-hidden="true">'+dots+'</div></div></div></header>';
+    '<div class="stats"><button class="stat sbtn" data-a="stkopen" aria-label="Détail de la série"><span class="label">Série en cours</span><div class="num">'+st+' <small style="font-size:16px;color:var(--mute);font-family:var(--f-body);font-weight:500">sem.</small></div><div class="xpline">Cette semaine : objectif '+weekGoal(wk(today()))+'</div></button>'+
+    '<div class="stat"><span class="label">Cette semaine</span><div class="num">'+n+'/'+weekGoal(wk(today()))+'</div><div class="dots" aria-hidden="true">'+dots+'</div></div></div></header>';
 }
 function legendHtml(){return '<div class="legend" aria-hidden="true"><span><i class="l1"></i>Un peu</span><span><i class="l2"></i>Bien</span><span><i class="l3"></i>À fond</span></div>'}
 function litNames(lv){
@@ -1108,21 +1111,23 @@ function lvlHtml(){
     '<div class="xpline"><span>'+xp.toLocaleString("fr-FR")+' XP au total</span></div>'+rows+
     '<p class="cap" style="margin:0">Estimation au rythme de tes '+n+' séances.</p></div></div>';
 }
+var stkSel=null;
 function stkHtml(){
-  var W=weeksInfo(),g=goalN(),cur=wk(today()),isOff=(S.off||[]).indexOf(cur)>=0;
+  var W=weeksInfo(),cur=wk(today()),sel=stkSel||cur,isOff=(S.off||[]).indexOf(sel)>=0,gs=weekGoal(sel),custom=!!(S.goals&&typeof S.goals[sel]==="number");
+  var fm=function(k){return k.slice(8)+"/"+k.slice(5,7)};
   var last=W.weeks.slice(-8).map(function(w){
     var lab={ok:"✓",joker:"J",off:"off",miss:"✗",cur:"…"}[w.st];
-    return '<span class="wk '+w.st+'" title="Semaine du '+w.k+'"><b>'+lab+'</b><small>'+w.k.slice(8)+'/'+w.k.slice(5,7)+'</small></span>';
+    return '<button class="wk '+w.st+(w.k===sel?' sel':'')+'" data-a="wksel" data-k="'+w.k+'" aria-label="Semaine du '+fm(w.k)+'" aria-pressed="'+(w.k===sel)+'"><b>'+lab+'</b><small>'+w.n+'/'+weekGoal(w.k)+'</small><small>'+fm(w.k)+'</small></button>';
   }).join("");
-  var jok=W.jokerUsed?'Joker de ce mois : utilisé (semaine du '+W.jokerUsed.slice(8)+'/'+W.jokerUsed.slice(5,7)+').':'Joker de ce mois : disponible. Il sauve automatiquement ta première semaine ratée du mois.';
+  var jok=W.jokerUsed?'Joker de ce mois : utilisé (semaine du '+fm(W.jokerUsed)+').':'Joker de ce mois : disponible. Il sauve automatiquement ta première semaine ratée du mois.';
   return '<div class="mini-bg" data-a="sbg"><div class="mini" role="dialog" aria-label="Série">'+
     '<div class="sheet-top"><h2>Série</h2><button class="x" data-a="stkclose" aria-label="Fermer">×</button></div>'+
     '<div class="xpline"><span><b>'+W.streak+'</b> semaine'+(W.streak>1?'s':'')+' d\'affilée · record <b>'+W.best+'</b></span></div>'+
-    '<span class="label">Objectif par semaine</span><div class="pills" role="group" aria-label="Objectif">'+[1,2,3,4].map(function(n){return '<button class="pill" data-a="goal" data-n="'+n+'" aria-pressed="'+(g===n)+'">'+n+'</button>'}).join("")+'</div>'+
-    '<span class="label">8 dernières semaines</span><div class="wks">'+last+'</div>'+
-    '<p class="cap" style="margin:0">'+esc(jok)+'</p>'+
-    '<button class="btn ghost" data-a="woff">'+(isOff?'Reprendre : cette semaine compte':'Cette semaine off (vacances, maladie)')+'</button>'+
-    '<p class="cap" style="margin:0">Les jours de repos ne cassent rien : seule une semaine sous l\'objectif compte. Une semaine off ne casse pas la série et ne la fait pas avancer.</p></div></div>';
+    '<span class="label">Semaines (touche pour modifier)</span><div class="wks">'+last+'</div>'+
+    '<span class="label">Objectif, semaine du '+fm(sel)+(custom?'':' (par défaut)')+'</span><div class="pills" role="group" aria-label="Objectif de la semaine">'+[1,2,3,4].map(function(n){return '<button class="pill" data-a="wgoal" data-n="'+n+'" aria-pressed="'+(gs===n)+'">'+n+'</button>'}).join("")+'</div>'+
+    '<button class="btn ghost" data-a="woff">'+(isOff?'Reprendre : cette semaine compte':(sel===cur?'Cette semaine':'Semaine du '+fm(sel))+' off (vacances, maladie)')+'</button>'+
+    '<span class="label">Objectif par défaut</span><div class="pills" role="group" aria-label="Objectif par défaut">'+[1,2,3,4].map(function(n){return '<button class="pill" data-a="goal" data-n="'+n+'" aria-pressed="'+(goalN()===n)+'">'+n+'</button>'}).join("")+'</div>'+
+    '<p class="cap" style="margin:0">'+esc(jok)+' Les jours de repos ne cassent rien : seule une semaine sous son objectif compte. Une semaine off ne casse pas la série et ne la fait pas avancer.</p></div></div>';
 }
 function popHtml(){if(popS)return stkHtml();if(popL)return lvlHtml();return chartId?chartHtml():det?detailHtml():(pk&&S.draft.meta)?pickHtml():popA?bigPop("Succès",succesHtml(),"achclose"):popB?bigPop("Sauvegarde et partage",backupHtml(),"bkclose"):""}
 function sheetHtml(){
@@ -1182,10 +1187,12 @@ function act(el){
   var a=el.getAttribute("data-a");
   if(a==="tab"){tab=el.getAttribute("data-t");render()}
   else if(a==="prog"){setProg(el.getAttribute("data-p"));save();render()}
-  else if(a==="stkopen"){popS=true;render()}
+  else if(a==="stkopen"){popS=true;stkSel=null;render()}
   else if(a==="stkclose"){popS=false;render()}
+  else if(a==="wksel"){stkSel=el.getAttribute("data-k");render()}
+  else if(a==="wgoal"){var wk0=stkSel||wk(today());S.goals=S.goals||{};S.goals[wk0]=+el.getAttribute("data-n");save();render()}
   else if(a==="goal"){S.goal=+el.getAttribute("data-n");save();render()}
-  else if(a==="woff"){var ck=wk(today()),ix=(S.off||[]).indexOf(ck);S.off=S.off||[];if(ix>=0)S.off.splice(ix,1);else S.off.push(ck);save();render()}
+  else if(a==="woff"){var ck=stkSel||wk(today()),ix=(S.off||[]).indexOf(ck);S.off=S.off||[];if(ix>=0)S.off.splice(ix,1);else S.off.push(ck);save();render()}
   else if(a==="lvlopen"){popL=true;render()}
   else if(a==="lvlclose"){popL=false;render()}
   else if(a==="achopen"){popA=true;render()}
