@@ -510,7 +510,7 @@ function adopt(d){
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 21:27";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 21:34";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -1328,11 +1328,11 @@ function sheetHtml(){
   }).join("");
   var hdr=kind==="w"?'<span>Charge (kg)</span><span>Reps</span>':kind==="t"?'<span>Durée (min:s)</span>':'<span>Durée (min:s)</span><span>Distance (km)</span>';
   var nS=S.draft.sets.filter(function(x){return x.m===sh.id}).length;
-  var delBlock=sh.del?'<div class="xpline"><span>Retirer cet exercice de la séance ?'+(nS?' Les '+nS+' série'+(nS>1?'s':'')+' déjà validée'+(nS>1?'s':'')+' seront supprimée'+(nS>1?'s':'')+'.':'')+' La machine et son historique restent.</span></div><button class="btn" style="background:#b3261e;color:#fff" data-a="unsely">Oui, retirer</button><button class="btn ghost" data-a="mcancel">Garder</button>':'';
+  var delBlock=sh.del?'<div class="xpline"><span><b>Supprimer cet exercice de la séance ?</b>'+(nS?'<br>Attention, des séries ont déjà été validées !':'')+'</span></div><button class="btn" style="background:#b3261e;color:#fff" data-a="unsely">Supprimer</button><button class="btn ghost" data-a="mcancel">Annuler</button>':'';
   var IC_PEN='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>';
   var IC_CH='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18"/><path d="M5 16l4-5 4 3 6-8"/></svg>';
   var IC_TR='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/></svg>';
-  return '<div class="sheet-bg" data-a="bg"><div class="sheet" role="dialog" aria-label="'+esc(m.name)+'">'+
+  return '<div class="sheet-bg" data-a="bg"><div class="sheet" data-sid="'+esc(sh.id)+'" role="dialog" aria-label="'+esc(m.name)+'">'+
     '<div class="sheet-top"><div class="ttl"><h2>'+esc(m.name)+'</h2><button class="pen" data-a="medit" data-id="'+esc(sh.id)+'" aria-label="Modifier la machine (nom, muscles)">'+IC_PEN+'</button></div><div class="tbtn"><button class="x" data-a="chart" data-id="'+esc(sh.id)+'" aria-label="Voir les courbes de cet exercice">'+IC_CH+'</button><button class="x" data-a="close" aria-label="Fermer">×</button></div></div>'+
     '<div class="stage">'+figs(machLevels(sh.id),false,null)+mtxt+'</div>'+
     '<div class="facts"><div><span class="label">Dernière</span><span class="num">'+esc(last)+'</span></div>'+
@@ -1351,6 +1351,7 @@ function sheetHtml(){
 var topNext=false;
 function render(){
   var sy=window.scrollY||window.pageYOffset||0;
+  var shEl=document.querySelector("#sheet .sheet"),shY=shEl?shEl.scrollTop:0,shId=shEl?shEl.getAttribute("data-sid"):null;
   var app=document.getElementById("app");
   var keep=document.getElementById("newm"),kv=keep?keep.value:"",ks=document.getElementById("newmu"),kk=ks?ks.value:"";
   var a0=document.activeElement,aid=a0&&/^(cmd|cmdet|pst)$/.test(a0.id||"")?a0.id:null,av=aid?a0.value:null,as=aid?a0.selectionStart:0;
@@ -1366,6 +1367,7 @@ function render(){
   document.getElementById("sheet").innerHTML=sheetHtml();
   document.getElementById("pop").innerHTML=popHtml();
   if(aid){var ae=document.getElementById(aid);if(ae){ae.value=av;ae.focus({preventScroll:true});try{ae.setSelectionRange(as,as)}catch(_){}}}
+  var shEl2=document.querySelector("#sheet .sheet");if(shEl2&&shY&&sh&&shEl2.getAttribute("data-sid")===shId)shEl2.scrollTop=shY;
   if(topNext){topNext=false;window.scrollTo(0,0)}else window.scrollTo(0,sy);
 }
 function act(el){
@@ -1451,7 +1453,7 @@ function act(el){
     S=adopt(JSON.parse(JSON.stringify(bk.pending)));bk.pending=null;bk.msg="Sauvegarde importée. L'ancienne version est gardée en copie locale.";
     sh=null;det=null;chartId=null;save();render();toast("Sauvegarde importée");
   }
-  else if(a==="unsel"){sh.del=true;render()}
+  else if(a==="unsel"){sh.del=true;render();var se2=document.querySelector("#sheet .sheet");if(se2)se2.scrollTop=se2.scrollHeight}
   else if(a==="unsely"){var uid=sh.id,rm=S.draft.sets.filter(function(x){return x.m===uid});
     rm.forEach(function(x){S.draft.xp=Math.max(0,(S.draft.xp||0)-10-(x.pr?25:0));if(x.pr)S.prs=Math.max(0,S.prs-1)});
     S.draft.sets=S.draft.sets.filter(function(x){return x.m!==uid});
