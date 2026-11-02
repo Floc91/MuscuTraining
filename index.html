@@ -510,7 +510,7 @@ function adopt(d){
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 21:34";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 21:52";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -574,7 +574,7 @@ function target(id){
     var base=ls?ls[ls.length-1]:null;
     if(!base)return {kind:kind,row:kind==="t"?{t:60}:{t:600,k:1},note:"Première fois sur cet exercice"};
     var row={t:base.t};if(base.k!=null)row.k=base.k;
-    if(kind==="t")row.t=base.t+15;else if(base.k!=null)row.k=Math.round((base.k+0.1)*100)/100;else row.t=base.t+60;
+    if(kind==="t")row.t=base.t+15;else if(base.k!=null)row.k=Math.round((base.k+1)*100)/100;else row.t=base.t+60;
     return {kind:kind,row:row,note:"Pour progresser : un peu plus longtemps"+(kind==="d"&&base.k!=null?" ou plus loin":"")+" que la dernière fois"};
   }
   if(!ls)return {kind:"w",w:m.w,note:"Première séance sur cette machine"};
@@ -1428,7 +1428,7 @@ function act(el){
     if(f==="w")row.w=Math.max(0,Math.round((row.w+d*2.5)*10)/10);
     else if(f==="r")row.r=Math.max(1,Math.min(99,row.r+d));
     else if(f==="t")row.t=Math.max(5,row.t+d*(kd==="t"?15:60));
-    else if(f==="k")row.k=Math.max(0,Math.round(((row.k||0)+d*0.1)*100)/100);
+    else if(f==="k")row.k=Math.max(0,Math.round(((row.k||0)+d*1)*100)/100);
     touch();render();
   }
   else if(a==="del"){sh.rows.splice(+el.getAttribute("data-i"),1);touch();render()}
