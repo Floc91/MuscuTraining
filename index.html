@@ -47,6 +47,15 @@ h2{font-size:24px}
 header{display:flex;flex-direction:column;gap:12px}
 .top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
 h1{font-size:34px}
+.sbtn{text-align:left;color:inherit;font:inherit;cursor:pointer;display:block;width:100%}
+.wks{display:flex;gap:6px;flex-wrap:wrap}
+.wk{display:flex;flex-direction:column;align-items:center;gap:2px;width:34px}
+.wk b{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:13px;border:2px solid var(--line);color:var(--mute)}
+.wk small{font-size:11px;color:var(--mute)}
+.wk.ok b{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.wk.joker b{background:var(--gold);border-color:var(--gold);color:#2a1f00}
+.wk.miss b{border-color:#d93a3a;color:#d93a3a}
+.wk.cur b{border-style:dashed}
 .mini-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:35;display:grid;place-items:center;padding:16px}
 .mini{color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:14px;width:100%;max-width:320px;padding:16px;display:flex;flex-direction:column;gap:10px}
 .mini h2{font-size:26px;color:var(--ink)}
@@ -362,10 +371,10 @@ function seed(){
       m("press","Leg press",50,10),m("curl","Leg curl",25),m("ext","Leg extension",20),
       m("add","Adducteurs",20),m("abd","Abducteurs",25),m("calf","Mollets (leg press)",40,10),
       {id:"plank",name:"Gainage",w:0,step:5,kind:"t"},{id:"rower",name:"Rameur",w:0,step:5,kind:"d"},{id:"run",name:"Tapis de course",w:0,step:5,kind:"d"}],
-    sessions:[],draft:{sets:[],xp:0,wip:{},rates:{},comment:"",meta:null},prs:0};
+    sessions:[],draft:{sets:[],xp:0,wip:{},rates:{},comment:"",meta:null},prs:0,goal:2,off:[]};
 }
 var seededNow=false, det=null, chartId=null, bk={msg:"",text:"",pending:null,info:""};
-var S=seed(), loaded=false, dbDoc=null, tab="seance", sh=null, status="", rng="today", pickM=null, pk=false, popA=false, popB=false, popL=false;
+var S=seed(), loaded=false, dbDoc=null, tab="seance", sh=null, status="", rng="today", pickM=null, pk=false, popA=false, popB=false, popL=false, popS=false;
 var prog={1:"mon",2:"tue",3:"wed",4:"thu"}[new Date().getDay()]||"all";
 
 /* ---------- historique de départ ---------- */
@@ -442,12 +451,14 @@ function adopt(d){
   if(s.draft&&s.draft.meta===undefined)s.draft.meta=null;
   if(typeof d.bw==="number")s.bw=d.bw;
   if(typeof d.prs==="number")s.prs=d.prs;
+  if(typeof d.goal==="number"&&d.goal>=1&&d.goal<=7)s.goal=d.goal;
+  if(Array.isArray(d.off))s.off=d.off.filter(function(x){return typeof x==="string"});
   if(d.seedv)s.seedv=d.seedv;else if(d.seeded)s.seedv=1;
   ensureSeed(s);renameHaut(s);
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 17:23";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"02/11 17:38";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -525,12 +536,28 @@ function level(xp){var L=Math.floor(Math.sqrt(xp/40))+1;return {L:L,lo:40*(L-1)*
 function wk(d){var x=new Date(d+"T12:00:00");x.setDate(x.getDate()-((x.getDay()+6)%7));return x.toLocaleDateString("sv")}
 function prevWk(k){var x=new Date(k+"T12:00:00");x.setDate(x.getDate()-7);return x.toLocaleDateString("sv")}
 function weekCounts(){var c={};S.sessions.forEach(function(s){var k=wk(s.d);c[k]=(c[k]||0)+1});return c}
-function streak(){
-  var c=weekCounts(),k=wk(today()),n=0;
-  if((c[k]||0)<GOAL_MIN)k=prevWk(k);
-  while((c[k]||0)>=GOAL_MIN){n++;k=prevWk(k)}
-  return n;
+function goalN(){return Math.max(1,Math.min(7,S.goal||2))}
+function addDays(d,n){var x=new Date(d+"T12:00:00");x.setDate(x.getDate()+n);return x.toLocaleDateString("sv")}
+function weeksInfo(){
+  var c=weekCounts(),g=goalN(),cur=wk(today()),first=null,ks=Object.keys(c).sort();
+  var out={weeks:[],streak:0,best:0,reach:{},jokerUsed:null};
+  if(!ks.length)return out;
+  var k=ks[0],run=0,jm={};
+  while(k<=cur){
+    var n=c[k]||0,mo=k.slice(0,7),st;
+    if(n>=g){st="ok";run++;if(!out.reach[run])out.reach[run]=k}
+    else if((S.off||[]).indexOf(k)>=0)st="off";
+    else if(k===cur)st="cur";
+    else if(!jm[mo]){jm[mo]=k;st="joker"}
+    else{st="miss";run=0}
+    if(run>out.best)out.best=run;
+    out.weeks.push({k:k,n:n,st:st});
+    k=addDays(k,7);
+  }
+  out.streak=run;out.jokerUsed=jm[cur.slice(0,7)]||null;
+  return out;
 }
+function streak(){return weeksInfo().streak}
 function totalSets(){var n=S.draft.sets.length;S.sessions.forEach(function(s){n+=s.sets.length});return n}
 function badges(){
   var c=weekCounts(),st=streak(),full=Object.keys(c).some(function(k){return c[k]>=GOAL_WEEK});
@@ -618,14 +645,14 @@ function sortSessions(){S.sessions.sort(function(a,c){return a.d<c.d?-1:a.d>c.d?
 function finish(){
   if(!S.draft.sets.length)return;
   var meta=S.draft.meta||{d:today(),name:"Séance"};
-  var xp=(S.draft.xp||0)+30,before=level(totalXp()).L,ab=achIds();
+  var xp=(S.draft.xp||0)+30,before=level(totalXp()).L,ab=achIds(),wkn0=weekCounts()[wk(meta.d)]||0;
   S.sessions.push({id:Date.now(),d:meta.d,name:meta.name||"",sets:S.draft.sets,rates:S.draft.rates||{},comment:S.draft.comment||"",xp:xp});
   sortSessions();
   S.draft={sets:[],xp:0,wip:{},rates:{},comment:"",meta:null};sh=null;pk=false;discardAsk=false;nw={tpl:"all",name:"",d:null};
   var after=level(totalXp()).L;
   save();render();
   var an=achIds(),nn=Object.keys(an).filter(function(k){return !ab[k]}).map(function(k){return an[k]});
-  toast((after>before?"Niveau "+after+" atteint !  +30 XP":"Séance terminée  +30 XP")+(nn.length?"  ·  Succès : "+nn.join(", "):""),after>before||nn.length>0);
+  toast((after>before?"Niveau "+after+" atteint !  +30 XP":"Séance terminée  +30 XP")+(nn.length?"  ·  Succès : "+nn.join(", "):"")+((wkn0<goalN()&&(weekCounts()[wk(meta.d)]||0)>=goalN())?"  ·  Objectif de la semaine atteint !":""),after>before||nn.length>0||(wkn0<goalN()&&(weekCounts()[wk(meta.d)]||0)>=goalN()));
 }
 function planned(){
   var dow=new Date().getDay(),td=today(),names=S.sessions.filter(function(x){return x.d===td}).map(function(x){return x.name});
@@ -675,12 +702,12 @@ function setBw(){
 function headerHtml(){
   var xp=totalXp(),lv=level(xp),pct=Math.round((xp-lv.lo)/(lv.hi-lv.lo)*100);
   var c=weekCounts(),n=c[wk(today())]||0,st=streak(),dots="";
-  for(var i=0;i<GOAL_WEEK;i++)dots+='<i class="'+(i<n?"on":"")+'"></i>';
+  for(var i=0;i<goalN();i++)dots+='<i class="'+(i<n?"on":"")+'"></i>';
   return '<header><div class="top"><h1>Carnet de salle</h1><button class="lvl" data-a="lvlopen" aria-label="Voir les niveaux suivants">Niv. '+lv.L+'</button></div>'+
     '<div><div class="xp" role="progressbar" aria-valuenow="'+pct+'" aria-valuemin="0" aria-valuemax="100" aria-label="Progression vers le niveau suivant"><i style="width:'+pct+'%"></i></div>'+
     '<div class="xpline"><span>'+xp+' XP</span><span>Niveau '+(lv.L+1)+' à '+lv.hi+' XP</span></div></div>'+
-    '<div class="stats"><div class="stat"><span class="label">Série en cours</span><div class="num">'+st+' <small style="font-size:16px;color:var(--mute);font-family:var(--f-body);font-weight:500">sem.</small></div><div class="xpline">'+GOAL_MIN+" séances ou plus par semaine</div></div>"+
-    '<div class="stat"><span class="label">Cette semaine</span><div class="num">'+n+'/'+GOAL_WEEK+'</div><div class="dots" aria-hidden="true">'+dots+'</div></div></div></header>';
+    '<div class="stats"><button class="stat sbtn" data-a="stkopen" aria-label="Détail de la série"><span class="label">Série en cours</span><div class="num">'+st+' <small style="font-size:16px;color:var(--mute);font-family:var(--f-body);font-weight:500">sem.</small></div><div class="xpline">Objectif : '+goalN()+' séance'+(goalN()>1?'s':'')+' par semaine</div></button>'+
+    '<div class="stat"><span class="label">Cette semaine</span><div class="num">'+n+'/'+goalN()+'</div><div class="dots" aria-hidden="true">'+dots+'</div></div></div></header>';
 }
 function legendHtml(){return '<div class="legend" aria-hidden="true"><span><i class="l1"></i>Un peu</span><span><i class="l2"></i>Bien</span><span><i class="l3"></i>À fond</span></div>'}
 function litNames(lv){
@@ -795,6 +822,9 @@ var ACH=[
  {id:"mon4",cat:"Régularité",ic:"M",name:"Lundi sans excuse",desc:"4 lundis de suite à la salle.",ev:function(C){return aRun(aWeekMap(C,function(o){return o.dow===1}),4)}},
  {id:"perfect",cat:"Régularité",ic:"4",name:"Semaine parfaite",desc:"4 séances dans la même semaine.",ev:function(C){var m=aWeekCounts(C),b=0,dt=null;Object.keys(m).forEach(function(k){if(m[k].n>b)b=m[k].n;if(m[k].n>=4&&(dt===null||m[k].d<dt))dt=m[k].d});return {date:dt,cur:Math.min(b,4),max:4}}},
  {id:"month",cat:"Régularité",ic:"▦",name:"Le mois blindé",desc:"4 semaines d'affilée avec au moins 2 séances.",ev:function(C){var m=aWeekCounts(C),w={};Object.keys(m).forEach(function(k){if(m[k].n>=2)w[k]=m[k].d});return aRun(w,4)}},
+ {id:"st4",cat:"Régularité",ic:"4s",name:"Série de 4 semaines",desc:"4 semaines d'affilée avec ton objectif atteint.",ev:function(C){var W=weeksInfo();return {date:W.reach[4]?addDays(W.reach[4],6):null,cur:Math.min(W.best,4),max:4}}},
+ {id:"st8",cat:"Régularité",ic:"8s",name:"Série de 8 semaines",desc:"8 semaines d'affilée. Deux mois de régularité.",ev:function(C){var W=weeksInfo();return {date:W.reach[8]?addDays(W.reach[8],6):null,cur:Math.min(W.best,8),max:8}}},
+ {id:"st12",cat:"Régularité",ic:"12s",name:"Série de 12 semaines",desc:"12 semaines d'affilée. Un trimestre sans lâcher.",ev:function(C){var W=weeksInfo();return {date:W.reach[12]?addDays(W.reach[12],6):null,cur:Math.min(W.best,12),max:12}}},
  {id:"back",cat:"Régularité",ic:"↺",name:"Retour de flamme",desc:"Reprendre après 8 jours ou plus sans séance. Revenir compte plus que ne jamais s'arrêter.",ev:function(C){return aAny(C,function(o,i){return i>0&&dnum(o.d)-dnum(C[i-1].d)>=8})}},
  {id:"weekend",cat:"Régularité",ic:"☼",name:"Bonus week-end",desc:"Une séance un vendredi, un samedi ou un dimanche.",ev:function(C){return aAny(C,function(o){return o.dow===5||o.dow===6||o.dow===0})}},
  {id:"grit",cat:"Régularité",ic:"♥",name:"Présent malgré tout",desc:"Terminer une séance au ressenti moyen de 2/5 ou moins. Venir un mauvais jour compte autant.",ev:function(C){return aAny(C,function(o){return o.rate!==null&&o.rate<=2})}},
@@ -1078,7 +1108,23 @@ function lvlHtml(){
     '<div class="xpline"><span>'+xp.toLocaleString("fr-FR")+' XP au total</span></div>'+rows+
     '<p class="cap" style="margin:0">Estimation au rythme de tes '+n+' séances.</p></div></div>';
 }
-function popHtml(){if(popL)return lvlHtml();return chartId?chartHtml():det?detailHtml():(pk&&S.draft.meta)?pickHtml():popA?bigPop("Succès",succesHtml(),"achclose"):popB?bigPop("Sauvegarde et partage",backupHtml(),"bkclose"):""}
+function stkHtml(){
+  var W=weeksInfo(),g=goalN(),cur=wk(today()),isOff=(S.off||[]).indexOf(cur)>=0;
+  var last=W.weeks.slice(-8).map(function(w){
+    var lab={ok:"✓",joker:"J",off:"off",miss:"✗",cur:"…"}[w.st];
+    return '<span class="wk '+w.st+'" title="Semaine du '+w.k+'"><b>'+lab+'</b><small>'+w.k.slice(8)+'/'+w.k.slice(5,7)+'</small></span>';
+  }).join("");
+  var jok=W.jokerUsed?'Joker de ce mois : utilisé (semaine du '+W.jokerUsed.slice(8)+'/'+W.jokerUsed.slice(5,7)+').':'Joker de ce mois : disponible. Il sauve automatiquement ta première semaine ratée du mois.';
+  return '<div class="mini-bg" data-a="sbg"><div class="mini" role="dialog" aria-label="Série">'+
+    '<div class="sheet-top"><h2>Série</h2><button class="x" data-a="stkclose" aria-label="Fermer">×</button></div>'+
+    '<div class="xpline"><span><b>'+W.streak+'</b> semaine'+(W.streak>1?'s':'')+' d\'affilée · record <b>'+W.best+'</b></span></div>'+
+    '<span class="label">Objectif par semaine</span><div class="pills" role="group" aria-label="Objectif">'+[1,2,3,4].map(function(n){return '<button class="pill" data-a="goal" data-n="'+n+'" aria-pressed="'+(g===n)+'">'+n+'</button>'}).join("")+'</div>'+
+    '<span class="label">8 dernières semaines</span><div class="wks">'+last+'</div>'+
+    '<p class="cap" style="margin:0">'+esc(jok)+'</p>'+
+    '<button class="btn ghost" data-a="woff">'+(isOff?'Reprendre : cette semaine compte':'Cette semaine off (vacances, maladie)')+'</button>'+
+    '<p class="cap" style="margin:0">Les jours de repos ne cassent rien : seule une semaine sous l\'objectif compte. Une semaine off ne casse pas la série et ne la fait pas avancer.</p></div></div>';
+}
+function popHtml(){if(popS)return stkHtml();if(popL)return lvlHtml();return chartId?chartHtml():det?detailHtml():(pk&&S.draft.meta)?pickHtml():popA?bigPop("Succès",succesHtml(),"achclose"):popB?bigPop("Sauvegarde et partage",backupHtml(),"bkclose"):""}
 function sheetHtml(){
   if(!sh)return "";
   var m=mach(sh.id),kind=kindOf(sh.id),b=bestSet(sh.id,true),ls=lastSession(sh.id),t=target(sh.id),nn=muNames(sh.id);
@@ -1136,6 +1182,10 @@ function act(el){
   var a=el.getAttribute("data-a");
   if(a==="tab"){tab=el.getAttribute("data-t");render()}
   else if(a==="prog"){setProg(el.getAttribute("data-p"));save();render()}
+  else if(a==="stkopen"){popS=true;render()}
+  else if(a==="stkclose"){popS=false;render()}
+  else if(a==="goal"){S.goal=+el.getAttribute("data-n");save();render()}
+  else if(a==="woff"){var ck=wk(today()),ix=(S.off||[]).indexOf(ck);S.off=S.off||[];if(ix>=0)S.off.splice(ix,1);else S.off.push(ck);save();render()}
   else if(a==="lvlopen"){popL=true;render()}
   else if(a==="lvlclose"){popL=false;render()}
   else if(a==="achopen"){popA=true;render()}
@@ -1200,6 +1250,7 @@ function act(el){
 }
 document.addEventListener("click",function(e){
   var el=e.target.closest("[data-a]");if(!el)return;
+  if(el.getAttribute("data-a")==="sbg"){if(e.target===el){popS=false;render()}return}
   if(el.getAttribute("data-a")==="lbg"){if(e.target===el){popL=false;render()}return}
   if(el.getAttribute("data-a")==="xbg"){if(e.target===el){popA=false;popB=false;render()}return}
   if(el.getAttribute("data-a")==="kbg"){if(e.target===el){pk=false;render()}return}
@@ -1240,7 +1291,7 @@ document.addEventListener("change",function(e){
 document.addEventListener("keydown",function(e){
   var t=e.target;
   if((e.key==="Enter"||e.key===" ")&&t.classList&&(t.classList.contains("mu")||t.classList.contains("pr-card"))){e.preventDefault();act(t)}
-  if(e.key==="Escape"){if(chartId)chartId=null;else if(det)det=null;else if(pk)pk=false;else if(popL)popL=false;else if(popA||popB){popA=false;popB=false}else if(sh)sh=null;else return;render()}
+  if(e.key==="Escape"){if(chartId)chartId=null;else if(det)det=null;else if(pk)pk=false;else if(popS)popS=false;else if(popL)popL=false;else if(popA||popB){popA=false;popB=false}else if(sh)sh=null;else return;render()}
 });
 render();
 if("serviceWorker" in navigator){
