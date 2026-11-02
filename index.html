@@ -134,6 +134,8 @@ nav button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
 .boss h2{font-size:30px}
 .hp{height:16px;border-radius:8px;background:var(--line);overflow:hidden;border:1px solid var(--line)}
 .hp i{display:block;height:100%;background:#d93a3a;border-radius:8px;transition:width .5s}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn.gold{background:var(--gold);color:#2a1f00}
 .btn{background:var(--accent);color:var(--accent-ink);font-weight:600;border-radius:8px;padding:12px 16px;min-height:48px}
 .btn.ghost{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
 .btn[disabled]{opacity:.45;cursor:default}
@@ -351,7 +353,7 @@ function seed(){
     sessions:[],draft:{sets:[],xp:0,wip:{},rates:{},comment:"",meta:null},prs:0};
 }
 var seededNow=false, det=null, chartId=null, bk={msg:"",text:"",pending:null,info:""};
-var S=seed(), loaded=false, dbDoc=null, tab="seance", sh=null, status="", rng="today", pickM=null, pk=false;
+var S=seed(), loaded=false, dbDoc=null, tab="seance", sh=null, status="", rng="today", pickM=null, pk=false, popA=false, popB=false;
 var prog={1:"mon",2:"tue",3:"wed",4:"thu"}[new Date().getDay()]||"all";
 
 /* ---------- historique de départ ---------- */
@@ -848,12 +850,12 @@ function progresHtml(){
     return '<div class="pr-card" role="button" tabindex="0" data-a="chart" data-id="'+esc(m.id)+'" style="cursor:pointer"><div class="nm">'+esc(m.name)+'<div class="label">Record · touche pour les courbes</div></div>'+
       '<div class="rec num">'+(b?fmtSet(b):'—')+'</div>'+(lastRate(m.id)?'<div class="xpline" style="grid-column:1/-1"><span>Dernier ressenti : '+lastRate(m.id)+'/5 ('+RL[lastRate(m.id)].toLowerCase()+')</span></div>':'')+spark(m.id)+'</div>';
   }).join("");
-  var bd=badges().map(function(b){return '<div class="bd'+(b.on?" on":"")+'"><b>'+esc(b.n)+'</b><span>'+esc(b.d)+'</span></div>'}).join("");
+  var nA=Object.keys(achIds()).length;
   var hist=S.sessions.slice(-6).reverse().map(function(s){
     var names={};s.sets.forEach(function(x){var m=mach(x.m);if(m)names[m.name]=1});
     return '<div class="row"><span>'+esc(Object.keys(names).join(", "))+'</span><span class="num">'+s.d.slice(8)+'/'+s.d.slice(5,7)+' · '+s.sets.length+' séries</span></div>';
   }).join("");
-  return '<h2>Badges</h2><div class="badges">'+bd+'</div><h2>Records par machine</h2><div class="list">'+cards+'</div>'+
+  return '<div class="two"><button class="btn gold" data-a="achopen">Succès · '+nA+' / '+ACH.length+'</button><button class="btn ghost" data-a="bkopen">Sauvegarde</button></div><h2>Records par machine</h2><div class="list">'+cards+'</div>'+
     '<h2>Dernières séances</h2>'+(hist?'<div class="hist">'+hist+'</div>':'<div class="empty">Termine ta première séance pour la voir ici.</div>')+
     '<div class="bw"><label for="bw" class="label">Poids de corps (kg)</label><input id="bw" inputmode="decimal" value="'+fmt(S.bw)+'"><button class="btn ghost" data-a="bw">OK</button></div>';
 }
@@ -1027,7 +1029,7 @@ function needBackup(){var le=lastExport();if(!le)return S.sessions.length>0;retu
 function lastExport(){try{return localStorage.getItem("carnet-last-export")||""}catch(e){return ""}}
 function backupHtml(){
   var n=bk.info||"",le=lastExport(),sn=snaps();
-  var h='<h2>Sauvegarde et partage</h2><div class="xpline"><span>Tes données sont enregistrées automatiquement sur ce téléphone, avec un point de restauration par jour pendant 7 jours. Le fichier est ta vraie copie de sécurité : garde-le en dehors du téléphone (Fichiers, mail, cloud).</span></div>'+
+  var h='<div class="xpline"><span>Tes données sont enregistrées automatiquement sur ce téléphone, avec un point de restauration par jour pendant 7 jours. Le fichier est ta vraie copie de sécurité : garde-le en dehors du téléphone (Fichiers, mail, cloud).</span></div>'+
    '<div class="xpline"><span>'+(le?'Dernier fichier de sauvegarde : '+esc(dlabel(le))+'.':'Aucun fichier de sauvegarde enregistré pour l\'instant.')+'</span></div>'+
    '<div class="card"><span class="label">Sauvegarde (JSON)</span><button class="btn" data-a="bexp">Enregistrer la sauvegarde sur le téléphone</button><button class="btn ghost" data-a="bcopy">Copier la sauvegarde</button>'+
    '<span class="label" style="margin-top:6px">Restaurer</span><input type="file" id="imp" data-f="imp" accept=".json,application/json" aria-label="Choisir un fichier de sauvegarde">'+
@@ -1055,7 +1057,10 @@ function pickHtml(){
     hidHtml+
     '<button class="btn" data-a="pkclose">Terminé</button></div></div>';
 }
-function popHtml(){return chartId?chartHtml():det?detailHtml():(pk&&S.draft.meta)?pickHtml():""}
+function bigPop(title,body,close){
+  return '<div class="sheet-bg" data-a="xbg"><div class="sheet" role="dialog" aria-label="'+esc(title)+'"><div class="sheet-top"><h2>'+esc(title)+'</h2><button class="x" data-a="'+close+'" aria-label="Fermer">×</button></div>'+body+'</div></div>';
+}
+function popHtml(){return chartId?chartHtml():det?detailHtml():(pk&&S.draft.meta)?pickHtml():popA?bigPop("Succès",succesHtml(),"achclose"):popB?bigPop("Sauvegarde et partage",backupHtml(),"bkclose"):""}
 function sheetHtml(){
   if(!sh)return "";
   var m=mach(sh.id),kind=kindOf(sh.id),b=bestSet(sh.id,true),ls=lastSession(sh.id),t=target(sh.id),nn=muNames(sh.id);
@@ -1096,10 +1101,10 @@ function render(){
   var app=document.getElementById("app");
   var keep=document.getElementById("newm"),kv=keep?keep.value:"",ks=document.getElementById("newmu"),kk=ks?ks.value:"";
   var a0=document.activeElement,aid=a0&&/^(cmd|cmdet|pst)$/.test(a0.id||"")?a0.id:null,av=aid?a0.value:null,as=aid?a0.selectionStart:0;
-  var tabs=[["seance","Séance"],["muscles","Muscles"],["histo","Historique"],["progres","Progrès"],["succes","Succès"]].map(function(t){
+  var tabs=[["seance","Séance"],["muscles","Muscles"],["histo","Historique"],["progres","Progrès"]].map(function(t){
     return '<button role="tab" data-a="tab" data-t="'+t[0]+'" aria-selected="'+(tab===t[0])+'">'+t[1]+'</button>'}).join("");
   app.innerHTML=headerHtml()+'<nav role="tablist">'+tabs+'</nav>'+
-    (tab==="seance"?seanceHtml():tab==="muscles"?musclesHtml():tab==="histo"?historiqueHtml():tab==="succes"?succesHtml():progresHtml()+backupHtml())+
+    (tab==="seance"?seanceHtml():tab==="muscles"?musclesHtml():tab==="histo"?historiqueHtml():progresHtml())+
     '<div class="foot">'+esc(status)+(needBackup()?' · pense à enregistrer une sauvegarde (onglet Progrès)':'')+' · v'+APP_VERSION+'</div>';
   var ni=document.getElementById("newm");if(ni&&kv)ni.value=kv;
   var ns=document.getElementById("newmu");if(ns&&kk)ns.value=kk;
@@ -1113,6 +1118,10 @@ function act(el){
   var a=el.getAttribute("data-a");
   if(a==="tab"){tab=el.getAttribute("data-t");render()}
   else if(a==="prog"){setProg(el.getAttribute("data-p"));save();render()}
+  else if(a==="achopen"){popA=true;render()}
+  else if(a==="achclose"){popA=false;render()}
+  else if(a==="bkopen"){popB=true;render()}
+  else if(a==="bkclose"){popB=false;render()}
   else if(a==="pkopen"){pk=true;render()}
   else if(a==="pkclose"){pk=false;render()}
   else if(a==="ptog"){togSel(el.getAttribute("data-id"));render()}
@@ -1171,6 +1180,7 @@ function act(el){
 }
 document.addEventListener("click",function(e){
   var el=e.target.closest("[data-a]");if(!el)return;
+  if(el.getAttribute("data-a")==="xbg"){if(e.target===el){popA=false;popB=false;render()}return}
   if(el.getAttribute("data-a")==="kbg"){if(e.target===el){pk=false;render()}return}
   if(el.getAttribute("data-a")==="bg"){if(e.target===el){sh=null;render()}return}
   if(el.getAttribute("data-a")==="pbg"){if(e.target===el){if(chartId)chartId=null;else det=null;render()}return}
@@ -1209,7 +1219,7 @@ document.addEventListener("change",function(e){
 document.addEventListener("keydown",function(e){
   var t=e.target;
   if((e.key==="Enter"||e.key===" ")&&t.classList&&(t.classList.contains("mu")||t.classList.contains("pr-card"))){e.preventDefault();act(t)}
-  if(e.key==="Escape"){if(chartId)chartId=null;else if(det)det=null;else if(pk)pk=false;else if(sh)sh=null;else return;render()}
+  if(e.key==="Escape"){if(chartId)chartId=null;else if(det)det=null;else if(pk)pk=false;else if(popA||popB){popA=false;popB=false}else if(sh)sh=null;else return;render()}
 });
 render();
 if("serviceWorker" in navigator){
