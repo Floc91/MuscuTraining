@@ -518,7 +518,7 @@ function adopt(d){
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"03/11 12:30";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"03/11 12:54";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -526,6 +526,14 @@ function adopt(d){
 function e1(w,r){return w*(1+r/30)}
 function kindOf(id){var m=mach(id);return (m&&m.kind)||"w"}
 function isT(x){return x.t!=null}
+function stepW(w,d){
+  w=Math.round(w*10)/10;
+  if(d>0){if(w<5)return Math.min(5,w+2.5);if(w<10)return 10;return w+5}
+  if(w>10)return Math.max(10,w-5);
+  if(w>5)return 5;
+  if(w>2.5)return 2.5;
+  return 0;
+}
 function sc(x){return isT(x)?(x.k!=null?x.k*1e5:0)+(x.t||0):e1(x.w,x.r)}
 function pad(n){return n<10?"0"+n:""+n}
 function fmtDur(sec){
@@ -589,7 +597,7 @@ function target(id){
   var w=Math.max.apply(null,ls.map(function(x){return x.w}));
   var lr=lastRate(id),need=lr===5?10:12,ok=ls.length>=2&&ls.every(function(x){return x.r>=need});
   if(ok&&lr&&lr<=2)return {kind:"w",w:w,note:"Dernier ressenti "+lr+"/5 : garde la même charge"};
-  return ok?{kind:"w",w:w+m.step,note:"Toutes les séries à "+need+" reps ou plus"+(lr?" · ressenti "+lr+"/5":"")}:{kind:"w",w:w,note:"Valide "+(lr===5?10:12)+" reps sur chaque série"+(lr===5?"":" (10 si ressenti 5/5)")+(lr?" · dernier ressenti "+lr+"/5":"")};
+  return ok?{kind:"w",w:(m.step<=5?stepW(w,1):w+m.step),note:"Toutes les séries à "+need+" reps ou plus"+(lr?" · ressenti "+lr+"/5":"")}:{kind:"w",w:w,note:"Valide "+(lr===5?10:12)+" reps sur chaque série"+(lr===5?"":" (10 si ressenti 5/5)")+(lr?" · dernier ressenti "+lr+"/5":"")};
 }
 function totalXp(){var x=S.draft.xp||0;S.sessions.forEach(function(s){x+=s.xp||0});return x+bonusInfo().total}
 function level(xp){var L=Math.floor(Math.sqrt(xp/40))+1;return {L:L,lo:40*(L-1)*(L-1),hi:40*L*L}}
@@ -1435,7 +1443,7 @@ function act(el){
   else if(a==="close"){sh=null;render()}
   else if(a==="rw"){
     var i=+el.getAttribute("data-i"),f=el.getAttribute("data-f"),d=+el.getAttribute("data-d"),row=sh.rows[i],kd=kindOf(sh.id);
-    if(f==="w"){var ws=d>0?(row.w<10?2.5:5):(row.w<=10?2.5:5);row.w=Math.max(0,Math.round((row.w+d*ws)*10)/10)}
+    if(f==="w")row.w=stepW(row.w,d);
     else if(f==="r")row.r=Math.max(1,Math.min(99,row.r+d));
     else if(f==="t")row.t=Math.max(5,row.t+d*(kd==="t"?15:60));
     else if(f==="k")row.k=Math.max(0,Math.round(((row.k||0)+d*1)*100)/100);
@@ -1443,7 +1451,7 @@ function act(el){
   }
   else if(a==="dstep"){var dse=det&&sess(det.id),dx=dse&&dse.sets[+el.getAttribute("data-i")],dk=el.getAttribute("data-k"),dd=+el.getAttribute("data-d");
     if(dx){
-      if(dk==="w"){var dws=dd>0?(dx.w<10?2.5:5):(dx.w<=10?2.5:5);dx.w=Math.max(0,Math.round((dx.w+dd*dws)*10)/10)}
+      if(dk==="w")dx.w=stepW(dx.w,dd);
       else if(dk==="r")dx.r=Math.max(1,Math.min(99,dx.r+dd));
       else if(dk==="t")dx.t=Math.max(5,dx.t+dd*(kindOf(dx.m)==="t"?15:60));
       else if(dk==="k")dx.k=Math.max(0,Math.round(((dx.k||0)+dd)*100)/100);
