@@ -518,7 +518,7 @@ function adopt(d){
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"03/11 00:25";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"03/11 12:30";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -587,9 +587,9 @@ function target(id){
   }
   if(!ls)return {kind:"w",w:m.w,note:"Première séance sur cette machine"};
   var w=Math.max.apply(null,ls.map(function(x){return x.w}));
-  var ok=ls.length>=2&&ls.every(function(x){return x.r>=10}),lr=lastRate(id);
+  var lr=lastRate(id),need=lr===5?10:12,ok=ls.length>=2&&ls.every(function(x){return x.r>=need});
   if(ok&&lr&&lr<=2)return {kind:"w",w:w,note:"Dernier ressenti "+lr+"/5 : garde la même charge"};
-  return ok?{kind:"w",w:w+m.step,note:"Toutes les séries à 10 reps ou plus"+(lr?" · ressenti "+lr+"/5":"")}:{kind:"w",w:w,note:"Valide 10 reps sur chaque série"+(lr?" · dernier ressenti "+lr+"/5":"")};
+  return ok?{kind:"w",w:w+m.step,note:"Toutes les séries à "+need+" reps ou plus"+(lr?" · ressenti "+lr+"/5":"")}:{kind:"w",w:w,note:"Valide "+(lr===5?10:12)+" reps sur chaque série"+(lr===5?"":" (10 si ressenti 5/5)")+(lr?" · dernier ressenti "+lr+"/5":"")};
 }
 function totalXp(){var x=S.draft.xp||0;S.sessions.forEach(function(s){x+=s.xp||0});return x+bonusInfo().total}
 function level(xp){var L=Math.floor(Math.sqrt(xp/40))+1;return {L:L,lo:40*(L-1)*(L-1),hi:40*L*L}}
