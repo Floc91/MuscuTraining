@@ -518,7 +518,7 @@ function adopt(d){
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"03/11 12:54";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"03/11 15:00";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -725,7 +725,7 @@ function finish(){
   if(!S.draft.sets.length)return;
   var meta=S.draft.meta||{d:today(),name:"Séance"};
   var xp=(S.draft.xp||0)+30,before=level(totalXp()).L,ab=achIds(),wkn0=weekCounts()[wk(meta.d)]||0;
-  S.sessions.push({id:Date.now(),d:meta.d,name:meta.name||"",sets:S.draft.sets,rates:S.draft.rates||{},comment:S.draft.comment||"",xp:xp,rx:1});
+  S.sessions.push({id:Date.now(),d:meta.d,name:meta.name||"",sets:S.draft.sets,rates:S.draft.rates||{},notes:(function(){var o={},dn=S.draft.notes||{};Object.keys(dn).forEach(function(k){if(dn[k]&&S.draft.sets.some(function(x){return x.m===k}))o[k]=dn[k]});return o})(),comment:S.draft.comment||"",xp:xp,rx:1});
   sortSessions();
   S.draft={sets:[],xp:0,wip:{},rates:{},comment:"",meta:null};sh=null;pk=false;discardAsk=false;nw={tpl:"all",name:"",d:null};
   var after=level(totalXp()).L;
@@ -1043,11 +1043,11 @@ function detailHtml(){
     }
     var kmT=sets.reduce(function(a,x){return a+(x.k||0)},0);
     var head=vol(sets)>0?'':fmtDur(totT(sets))+(kmT?' · '+fmtKm(kmT)+' km':'');
-    return '<div class="exb"><div class="hd"><div class="hdt"><b>'+esc(nm)+'</b><span class="mnote">'+[head,rt?'ressenti '+rt+'/5':''].filter(Boolean).join(' · ')+'</span></div><button class="x cbtn" data-a="chart" data-id="'+esc(g.id)+'" aria-label="Voir les courbes de '+esc(nm)+'"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18"/><path d="M5 16l4-5 4 3 6-8"/></svg></button></div>'+rows+(det.edit?'<div><span class="label">Ressenti de l\'exercice</span><div class="rate" style="margin-top:6px" role="group" aria-label="Note de 1 à 5">'+[1,2,3,4,5].map(function(n){return '<button data-a="drate" data-id="'+esc(g.id)+'" data-v="'+n+'" aria-pressed="'+(rt===n)+'">'+n+'</button>'}).join("")+'</div></div>':'')+'</div>';
+    return '<div class="exb"><div class="hd"><div class="hdt"><b>'+esc(nm)+'</b><span class="mnote">'+[head,rt?'ressenti '+rt+'/5':''].filter(Boolean).join(' · ')+'</span></div><button class="x cbtn" data-a="chart" data-id="'+esc(g.id)+'" aria-label="Voir les courbes de '+esc(nm)+'"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18"/><path d="M5 16l4-5 4 3 6-8"/></svg></button></div>'+(det.edit?'<label class="fld"><span>Commentaire de l\'exercice</span><textarea data-f="xn" data-s="'+esc(se.id)+'" data-id="'+esc(g.id)+'" rows="2" maxlength="300" placeholder="Douleur, sensation, réglage…">'+esc((se.notes||{})[g.id]||"")+'</textarea></label>':((se.notes||{})[g.id]?'<p class="cap" style="margin:0">'+esc(se.notes[g.id])+'</p>':''))+rows+(det.edit?'<div><span class="label">Ressenti de l\'exercice</span><div class="rate" style="margin-top:6px" role="group" aria-label="Note de 1 à 5">'+[1,2,3,4,5].map(function(n){return '<button data-a="drate" data-id="'+esc(g.id)+'" data-v="'+n+'" aria-pressed="'+(rt===n)+'">'+n+'</button>'}).join("")+'</div></div>':'')+'</div>';
   }).join("");
   var del=det.del?'<button class="btn" style="background:#b3261e;color:#fff" data-a="dconfirm">Confirmer la suppression de la séance</button><button class="btn ghost" data-a="dcancel">Annuler</button>':'<button class="btn danger" data-a="ddel">Supprimer la séance</button>';
   return '<div class="sheet-bg" data-a="pbg"><div class="sheet" role="dialog" aria-label="Détail de la séance">'+
-    '<div class="sheet-top"><h2 class="cap1">'+esc(dlabel(se.d))+'</h2><button class="x" data-a="dclose" aria-label="Fermer">×</button></div>'+
+    '<div class="sheet-top"><h2 class="cap1">'+esc(dlabel(se.d))+'</h2><div class="tbtn"><button class="x" data-a="dai" aria-label="Copier un résumé pour Claude"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 4l1.6 4.4L16 10l-4.4 1.6L10 16l-1.6-4.4L4 10l4.4-1.6z"/><path d="M18 14l.8 2.2L21 17l-2.2.8L18 20l-.8-2.2L15 17l2.2-.8z"/></svg></button><button class="x" data-a="dclose" aria-label="Fermer">×</button></div></div>'+
     '<div class="xpline"><span>'+se.sets.length+' séries · '+metric(se.sets)+'</span></div>'+
     '<div class="fld"><label class="fld"><span>Nom de la séance</span><input data-f="sname" data-s="'+esc(se.id)+'" maxlength="40" value="'+esc(se.name||"")+'" placeholder="Nom de la séance" autocomplete="off"></label><label class="fld" style="margin-top:10px"><span>Date</span><input type="date" data-f="sdate" data-s="'+esc(se.id)+'" max="'+today()+'" value="'+esc(se.d)+'"></label></div>'+
     '<div class="stage">'+figs(lv,false,null)+'<p class="cap">'+(names.length?'<b>Muscles sollicités :</b> '+esc(names.join(", "))+'.':'')+'</p></div>'+
@@ -1118,13 +1118,33 @@ function claudeText(n){
     groups(se.sets).forEach(function(g){
       var m=mach(g.id),rt=se.rates&&se.rates[g.id];
       L.push("- "+(m?m.name:g.id)+" : "+g.items.map(function(it){return fmtSet(it.x)}).join(" ; ")+(rt?" (ressenti "+rt+"/5)":""));
+      if(se.notes&&se.notes[g.id])L.push("  Commentaire : "+se.notes[g.id]);
     });
     if(se.comment)L.push("Commentaire : "+se.comment);
     L.push("");
   }
   ses.forEach(function(se){block(se,"Séance du "+se.d+(se.name?" ("+se.name+")":""))});
-  if(S.draft.sets.length)block({sets:S.draft.sets,rates:S.draft.rates,comment:S.draft.comment},"Séance en cours, non terminée");
+  if(S.draft.sets.length)block({sets:S.draft.sets,rates:S.draft.rates,notes:S.draft.notes,comment:S.draft.comment},"Séance en cours, non terminée");
   return L.join("\n");
+}
+function aiSummary(se){
+  var L=["Analyse cette séance de musculation (app Reps). Dis-moi ce qui s'est bien passé, les points d'attention (douleurs, reps qui chutent, ressenti bas, charge trop haute) et les charges à viser à la prochaine séance. Sois concis.",
+    "Légende : charges en kg, ressenti de 1 (très dur) à 5 (excellent), ★ = record.",
+    "Poids de corps : "+fmt(S.bw)+" kg. Objectifs : prendre du muscle et de la force, préparer un 30 km de course en mars.",""];
+  L.push("Séance du "+se.d+(se.name?" ("+se.name+")":""));
+  groups(se.sets).forEach(function(g){
+    var m=mach(g.id),rt=se.rates&&se.rates[g.id],prev=null;
+    for(var i=S.sessions.length-1;i>=0;i--){var o=S.sessions[i];if(o.id!==se.id&&o.d<=se.d&&o.sets.some(function(x){return x.m===g.id})){prev=o;break}}
+    L.push("- "+(m?m.name:g.id)+" : "+g.items.map(function(it){return fmtSet(it.x)+(it.x.pr?" ★":"")}).join(" ; ")+(rt?" (ressenti "+rt+"/5)":""));
+    if(se.notes&&se.notes[g.id])L.push("  Commentaire : "+se.notes[g.id]);
+    if(prev)L.push("  Fois précédente ("+prev.d+") : "+prev.sets.filter(function(x){return x.m===g.id}).map(fmtSet).join(" ; "));
+  });
+  if(se.comment)L.push("Commentaire général : "+se.comment);
+  return L.join("\n");
+}
+function copyPlain(txt,okMsg){
+  function fb(){try{var ta=document.createElement("textarea");ta.value=txt;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.focus();ta.select();var ok=document.execCommand&&document.execCommand("copy");document.body.removeChild(ta);toast(ok?okMsg:"Copie impossible")}catch(e){toast("Copie impossible")}}
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(function(){toast(okMsg)},fb);else fb();
 }
 function copyText(txt,ta){
   function fallback(){
@@ -1360,6 +1380,7 @@ function sheetHtml(){
     rows+
     '<button class="btn ghost" data-a="addrow">+ Ajouter une série</button>'+
     '<div><span class="label">Ressenti de l\'exercice</span><div class="rate" style="margin-top:6px" role="group" aria-label="Note de 1 à 5">'+[1,2,3,4,5].map(function(n){return '<button data-a="rate" data-v="'+n+'" aria-pressed="'+(S.draft.rates[sh.id]===n)+'">'+n+'</button>'}).join("")+'</div><div class="xpline" style="margin-top:6px"><span>'+(S.draft.rates[sh.id]?RL[S.draft.rates[sh.id]]:"1 = très dur, 5 = excellent · +5 XP la première fois")+'</span></div></div>'+
+    '<label class="fld"><span>Commentaire de l\'exercice</span><textarea data-f="xn" data-s="draft" data-id="'+esc(sh.id)+'" rows="2" maxlength="300" placeholder="Douleur, sensation, réglage…">'+esc((S.draft.notes||{})[sh.id]||"")+'</textarea></label>'+
     '<div class="endrow"><button class="btn" data-a="terminer"'+(sh.rows.length?'':' disabled')+'>Terminer l\'exercice</button><button class="trash" data-a="unsel" aria-label="Retirer cet exercice de la séance">'+IC_TR+'</button></div>'+
     delBlock+
     '</div></div>';
@@ -1458,6 +1479,7 @@ function act(el){
       save();render();
     }}
   else if(a==="del"){sh.rows.splice(+el.getAttribute("data-i"),1);touch();render()}
+  else if(a==="dai"){var ase=det&&sess(det.id);if(ase)copyPlain(aiSummary(ase),"Résumé copié, colle-le dans Claude")}
   else if(a==="drate"){var rse=det&&sess(det.id);if(rse){var rid=el.getAttribute("data-id"),rv=+el.getAttribute("data-v");if(!rse.rates)rse.rates={};if(rse.rates[rid]===rv)delete rse.rates[rid];else rse.rates[rid]=rv;save();render()}}
   else if(a==="rate"){var v=+el.getAttribute("data-v"),gained=false;if(S.draft.rates[sh.id]===v)delete S.draft.rates[sh.id];else{S.draft.rates[sh.id]=v;if(!S.draft.rxp)S.draft.rxp={};if(!S.draft.rxp[sh.id]){S.draft.rxp[sh.id]=1;S.draft.xp=(S.draft.xp||0)+5;gained=true}}save();render();if(gained)toast("+5 XP · ressenti noté")}
   else if(a==="addrow")addRow();
@@ -1485,7 +1507,7 @@ function act(el){
     rm.forEach(function(x){S.draft.xp=Math.max(0,(S.draft.xp||0)-10-(x.pr?25:0));if(x.pr)S.prs=Math.max(0,S.prs-1)});
     S.draft.sets=S.draft.sets.filter(function(x){return x.m!==uid});
     var sl=selIds(),ui=sl.indexOf(uid);if(ui>=0)sl.splice(ui,1);
-    delete S.draft.wip[uid];if(S.draft.rates)delete S.draft.rates[uid];if(S.draft.rxp&&S.draft.rxp[uid]){S.draft.xp=Math.max(0,(S.draft.xp||0)-5);delete S.draft.rxp[uid]}sh=null;save();render();toast("Exercice retiré de la séance")}
+    delete S.draft.wip[uid];if(S.draft.rates)delete S.draft.rates[uid];if(S.draft.notes)delete S.draft.notes[uid];if(S.draft.rxp&&S.draft.rxp[uid]){S.draft.xp=Math.max(0,(S.draft.xp||0)-5);delete S.draft.rxp[uid]}sh=null;save();render();toast("Exercice retiré de la séance")}
   else if(a==="mcancel"){sh.del=false;render()}
   else if(a==="mconfirm"){var hm=mach(sh.id);if(hm)hm.hidden=true;delete S.draft.wip[sh.id];sh=null;save();render();toast("Machine supprimée, historique conservé")}
   else if(a==="mrestore"){var rm=mach(el.getAttribute("data-id"));if(rm){rm.hidden=false;save();render()}}
@@ -1525,6 +1547,12 @@ document.addEventListener("change",function(e){
   if(f==="sname"){var s1=sess(t.getAttribute("data-s"));if(s1){s1.name=t.value.slice(0,40);save()}return}
   if(f==="sdate"){var s2=sess(t.getAttribute("data-s"));if(s2&&t.value&&t.value<=today()){s2.d=t.value;sortSessions();save();render()}return}
   if(f==="imp"){var fl=t.files&&t.files[0];if(fl)fl.text().then(function(tx){t.value="";stageImport(tx)},function(){bk.msg="Lecture du fichier impossible.";render()});return}
+  if(f==="xn"){
+    var xs=t.getAttribute("data-s"),xi=t.getAttribute("data-id"),xt=String(t.value).slice(0,300);
+    if(xs==="draft"){if(!S.draft.notes)S.draft.notes={};if(xt)S.draft.notes[xi]=xt;else delete S.draft.notes[xi]}
+    else{var xse=sess(xs);if(xse){if(!xse.notes)xse.notes={};if(xt)xse.notes[xi]=xt;else delete xse.notes[xi]}}
+    save();return;
+  }
   if(f==="cm"){
     var sid=t.getAttribute("data-s"),txt=String(t.value).slice(0,600);
     if(sid==="draft")S.draft.comment=txt;else{var se=sess(sid);if(se)se.comment=txt}
