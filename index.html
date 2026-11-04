@@ -527,7 +527,7 @@ function adopt(d){
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"04/11 14:31";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"05/11 00:18";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -1065,7 +1065,8 @@ function detailHtml(){
     }
     var kmT=sets.reduce(function(a,x){return a+(x.k||0)},0);
     var gwu=isWU(g.items[0].x,se.sets);
-    var head=(gwu?'échauffement · ':'')+(vol(sets)>0?'':fmtDur(totT(sets))+(kmT?' · '+fmtKm(kmT)+' km':''));
+    var gp=kindOf(g.id)==="d"?paceOf(sets,g.id):null;
+    var head=(gwu?'échauffement · ':'')+(vol(sets)>0?'':fmtDur(totT(sets))+(kmT?' · '+fmtKm(kmT)+' km':'')+(gp!=null?' · '+fmtPace(gp)+' '+paceUnit(g.id):''));
     return '<div class="exb"><div class="hd"><div class="hdt"><b>'+esc(nm)+'</b><span class="mnote">'+[head,rt?'ressenti '+rt+'/5':''].filter(Boolean).join(' · ')+'</span></div><button class="x cbtn" data-a="chart" data-id="'+esc(g.id)+'" aria-label="Voir les courbes de '+esc(nm)+'"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18"/><path d="M5 16l4-5 4 3 6-8"/></svg></button></div>'+(det.edit&&isCardioM(g.id)?'<div class="pills" role="group" aria-label="Type d\'effort"><button class="pill" data-a="dwu" data-id="'+esc(g.id)+'" data-v="0" aria-pressed="'+(!gwu)+'">Cardio</button><button class="pill" data-a="dwu" data-id="'+esc(g.id)+'" data-v="1" aria-pressed="'+gwu+'">Échauffement</button></div>':'')+(det.edit?'<label class="fld"><span>Commentaire de l\'exercice</span><textarea data-f="xn" data-s="'+esc(se.id)+'" data-id="'+esc(g.id)+'" rows="2" maxlength="300" placeholder="Douleur, sensation, réglage…">'+esc((se.notes||{})[g.id]||"")+'</textarea></label>':((se.notes||{})[g.id]?'<p class="cap" style="margin:0">'+esc(se.notes[g.id])+'</p>':''))+rows+(det.edit?'<div><span class="label">Ressenti de l\'exercice</span><div class="rate" style="margin-top:6px" role="group" aria-label="Note de 1 à 5">'+[1,2,3,4,5].map(function(n){return '<button data-a="drate" data-id="'+esc(g.id)+'" data-v="'+n+'" aria-pressed="'+(rt===n)+'">'+n+'</button>'}).join("")+'</div></div>':'')+'</div>';
   }).join("");
   var del=det.del?'<button class="btn" style="background:#b3261e;color:#fff" data-a="dconfirm">Confirmer la suppression de la séance</button><button class="btn ghost" data-a="dcancel">Annuler</button>':'<button class="btn danger" data-a="ddel">Supprimer la séance</button>';
@@ -1086,24 +1087,32 @@ function chartSets(id){
   if(ds.length){var t=(S.draft.meta&&S.draft.meta.d)||today(),lp=out[out.length-1];if(lp&&lp.d===t)lp.ss=lp.ss.concat(ds);else out.push({d:t,ss:ds})}
   return out;
 }
-function chartCfg(rows){
+function per500(id){var m=mach(id);return id==="rower"||!!(m&&/rame|row/i.test(m.name))}
+function paceOf(ss,id){var km=0,t=0;ss.forEach(function(x){if(x.k!=null&&x.k>0&&x.t){km+=x.k;t+=x.t}});if(!km)return null;return per500(id)?t/(km*2):t/km}
+function fmtPace(sec){if(sec==null)return "—";sec=Math.round(sec);return Math.floor(sec/60)+":"+pad(sec%60)}
+function paceUnit(id){return per500(id)?"/500 m":"/km"}
+function chartCfg(rows,id){
   var timed=rows.some(function(r){return r.ss.some(isT)});
   if(!timed)return {ta:"Charge de travail (kg)",sa:"Charge la plus lourde de chaque séance.",tb:"Volume total (kg)",sb:"Séries × reps × charge, additionné sur la séance.",
     ha:"Charge",hb:"Volume",ua:" kg",ub:" kg",fa:fmt,fb:fmtN,
     a:function(ss){return Math.max.apply(null,ss.map(function(x){return x.w}))},b:vol};
   var km=rows.some(function(r){return r.ss.some(function(x){return x.k!=null})});
+  if(km&&kindOf(id)==="d")return {pace:true,ta:"Allure moyenne (min"+paceUnit(id)+")",sa:"Plus haut = plus rapide. Calculée sur les séances avec distance.",
+    tb:"Distance (km)",sb:"Distance totale de chaque séance.",ha:"Allure",hb:"Distance",hs:"Durée",ua:" "+paceUnit(id),ub:" km",
+    fa:fmtPace,fb:fmtKm,a:function(ss){return paceOf(ss,id)},b:function(ss){return ss.reduce(function(a,x){return a+(x.k||0)},0)},
+    s:function(ss){return fmtDur(totT(ss))}};
   return {ta:km?"Distance (km)":"Durée la plus longue (min)",sa:km?"Distance totale de chaque séance.":"Série la plus longue de chaque séance.",
     tb:"Durée totale (min)",sb:"Temps cumulé de chaque séance.",ha:km?"Distance":"Durée max",hb:"Durée",ua:km?" km":" min",ub:" min",
     fa:km?fmtKm:fmt,fb:fmt,
     a:function(ss){return km?ss.reduce(function(a,x){return a+(x.k||0)},0):Math.max.apply(null,ss.map(function(x){return (x.t||0)/60}))},
     b:function(ss){return ss.reduce(function(a,x){return a+(x.t||0)/60},0)}};
 }
-function chartSvg(pts,key,label,ff){
+function chartSvg(pts,key,label,ff,inv){
   var W=320,H=160,Lm=44,Rm=14,Tm=16,Bm=26,vals=pts.map(function(p){return p[key]});
   var mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals),span=(mx-mn)||mx*0.2||1;
   var lo=Math.max(0,mn-span*0.35),hi=mx+span*0.35;
   function X(i){return pts.length===1?Lm+(W-Lm-Rm)/2:Lm+i*(W-Lm-Rm)/(pts.length-1)}
-  function Y(v){return Tm+(1-(v-lo)/(hi-lo))*(H-Tm-Bm)}
+  function Y(v){return Tm+(inv?(v-lo)/(hi-lo):(1-(v-lo)/(hi-lo)))*(H-Tm-Bm)}
   var g="",tk=[lo,(lo+hi)/2,hi];
   tk.forEach(function(v){var y=Y(v).toFixed(1);g+='<line x1="'+Lm+'" x2="'+(W-Rm)+'" y1="'+y+'" y2="'+y+'" style="stroke:var(--line)" stroke-width="1"/><text x="'+(Lm-6)+'" y="'+(+y+3.5)+'" text-anchor="end" font-size="10" style="fill:var(--mute)">'+ff(v)+'</text>'});
   var d="",dots="",lab="",step=Math.max(1,Math.ceil(pts.length/5));
@@ -1122,11 +1131,12 @@ function chartHtml(){
   var rows=chartSets(chartId),body;
   if(!rows.length)body='<div class="empty">Pas encore de séance sur cet exercice. Les courbes apparaîtront après le premier exercice terminé.</div>';
   else{
-    var c=chartCfg(rows),pts=rows.map(function(r){var rp=r.ss.filter(function(x){return !isT(x)}).map(function(x){return x.r}),same=rp.length&&rp.every(function(v){return v===rp[0]});return {d:r.d,a:c.a(r.ss),b:c.b(r.ss),n:r.ss.length,rs:rp.length?(same?rp.length+' × '+rp[0]:rp.join(' · ')):String(r.ss.length)}});
-    body='<div class="chartbox"><span class="label">'+esc(c.ta)+'</span>'+chartSvg(pts,"a",c.ta,c.fa)+'<span class="mnote">'+esc(c.sa)+'</span></div>'+
+    var c=chartCfg(rows,chartId),pts=rows.map(function(r){var rp=r.ss.filter(function(x){return !isT(x)}).map(function(x){return x.r}),same=rp.length&&rp.every(function(v){return v===rp[0]});return {d:r.d,a:c.a(r.ss),b:c.b(r.ss),n:r.ss.length,rs:c.s?c.s(r.ss):rp.length?(same?rp.length+' × '+rp[0]:rp.join(' · ')):String(r.ss.length)}});
+    var ptsA=pts.filter(function(p){return p.a!=null});
+    body='<div class="chartbox"><span class="label">'+esc(c.ta)+'</span>'+(ptsA.length?chartSvg(ptsA,"a",c.ta,c.fa,!!c.pace):'<div class="empty">Ajoute la distance pour voir ton allure.</div>')+'<span class="mnote">'+esc(c.sa)+'</span></div>'+
       '<div class="chartbox"><span class="label">'+esc(c.tb)+'</span>'+chartSvg(pts,"b",c.tb,c.fb)+'<span class="mnote">'+esc(c.sb)+'</span></div>'+
-      '<table class="ptable"><thead><tr><th>Date</th><th>'+c.ha+'</th><th>'+(c.ha==='Charge'?'Séries × reps':'Séries')+'</th><th>'+c.hb+'</th></tr></thead><tbody>'+
-      pts.slice().reverse().map(function(p){return '<tr><td>'+dshort(p.d)+'</td><td>'+c.fa(p.a)+c.ua+'</td><td>'+p.rs+'</td><td>'+c.fb(p.b)+c.ub+'</td></tr>'}).join("")+'</tbody></table>';
+      '<table class="ptable"><thead><tr><th>Date</th><th>'+c.ha+'</th><th>'+(c.hs||(c.ha==='Charge'?'Séries × reps':'Séries'))+'</th><th>'+c.hb+'</th></tr></thead><tbody>'+
+      pts.slice().reverse().map(function(p){return '<tr><td>'+dshort(p.d)+'</td><td>'+(p.a==null?'—':c.fa(p.a)+c.ua)+'</td><td>'+p.rs+'</td><td>'+c.fb(p.b)+c.ub+'</td></tr>'}).join("")+'</tbody></table>';
   }
   return '<div class="sheet-bg top" data-a="pbg"><div class="sheet" role="dialog" aria-label="Courbes '+esc(m.name)+'">'+
     '<div class="sheet-top"><h2>'+esc(m.name)+'</h2><button class="x" data-a="cclose" aria-label="Fermer">×</button></div>'+body+'</div></div>';
@@ -1159,6 +1169,8 @@ function aiSummary(se){
     var m=mach(g.id),rt=se.rates&&se.rates[g.id],prev=null,gw=isWU(g.items[0].x,se.sets);
     for(var i=S.sessions.length-1;i>=0;i--){var o=S.sessions[i];if(o.id!==se.id&&o.d<=se.d&&o.sets.some(function(x){return x.m===g.id&&isWU(x,o.sets)===gw})){prev=o;break}}
     L.push("- "+(m?m.name:g.id)+(gw?" (échauffement)":"")+" : "+g.items.map(function(it){return fmtSet(it.x)+(it.x.pr?" ★":"")}).join(" ; ")+(rt?" (ressenti "+rt+"/5)":""));
+    var ap=kindOf(g.id)==="d"?paceOf(g.items.map(function(it){return it.x}),g.id):null;
+    if(ap!=null)L.push("  Allure moyenne : "+fmtPace(ap)+" "+paceUnit(g.id));
     if(se.notes&&se.notes[g.id])L.push("  Commentaire : "+se.notes[g.id]);
     if(prev)L.push("  Fois précédente ("+prev.d+") : "+prev.sets.filter(function(x){return x.m===g.id&&isWU(x,prev.sets)===gw}).map(fmtSet).join(" ; "));
   });
