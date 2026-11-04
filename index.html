@@ -286,6 +286,14 @@ textarea:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 nav button{font-size:15px;padding-inline:2px}
 .facts .num{font-size:20px;overflow-wrap:anywhere;line-height:1.1}
 .setrow.one,.setsh.one{grid-template-columns:20px 1fr 36px}
+
+/* bottom navigation + session bar above it */
+body{padding-bottom:calc(160px + env(safe-area-inset-bottom,0px))}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:6;display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:0;border-top:1px solid var(--line);border-radius:0;
+  background:var(--surface);padding:4px max(8px,env(safe-area-inset-left,0px)) calc(4px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-right,0px))}
+nav button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;min-height:56px;border-radius:8px;font-size:12px;font-weight:600;color:var(--mute)}
+nav button[aria-selected="true"]{background:none;color:var(--accent)}
+.bar{bottom:calc(65px + env(safe-area-inset-bottom,0px));padding-top:10px;padding-bottom:10px;border-top:1px solid var(--line);background:var(--bg)}
 html,body{margin:0}
 </style>
 
@@ -518,7 +526,7 @@ function adopt(d){
   return s;
 }
 (function init(){
-  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"03/11 15:00";afterLoad();render();
+  S=adopt(lsLoad());loaded=true;status="Sauvegarde automatique sur ce téléphone · version "+"04/11 11:30";afterLoad();render();
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
 })();
 
@@ -1393,15 +1401,19 @@ function render(){
   var app=document.getElementById("app");
   var keep=document.getElementById("newm"),kv=keep?keep.value:"",ks=document.getElementById("newmu"),kk=ks?ks.value:"";
   var a0=document.activeElement,aid=a0&&/^(cmd|cmdet|pst)$/.test(a0.id||"")?a0.id:null,av=aid?a0.value:null,as=aid?a0.selectionStart:0;
+  var IC={seance:'<path d="M3 10v4M6 7v10M18 7v10M21 10v4M6 12h12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>',
+    muscles:'<circle cx="12" cy="4.5" r="2.5" fill="currentColor"/><path d="M5 8.5h14M12 8.5v6M12 14.5l-3 6.5M12 14.5l3 6.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>',
+    histo:'<rect x="4" y="5" width="16" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 10h16M9 3v4M15 3v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+    progres:'<path d="M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M5 15l4-5 4 3 6-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>'};
   var tabs=[["seance","Séance"],["muscles","Muscles"],["histo","Historique"],["progres","Progrès"]].map(function(t){
-    return '<button role="tab" data-a="tab" data-t="'+t[0]+'" aria-selected="'+(tab===t[0])+'">'+t[1]+'</button>'}).join("");
+    return '<button role="tab" data-a="tab" data-t="'+t[0]+'" aria-selected="'+(tab===t[0])+'"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">'+IC[t[0]]+'</svg>'+t[1]+'</button>'}).join("");
   app.innerHTML=headerHtml()+'<nav role="tablist">'+tabs+'</nav>'+
     (tab==="seance"?seanceHtml():tab==="muscles"?musclesHtml():tab==="histo"?historiqueHtml():progresHtml())+
     '<div class="foot">'+esc(status)+(needBackup()?' · pense à enregistrer une sauvegarde (en bas de Progrès)':'')+' · v'+APP_VERSION+'</div>';
   var ni=document.getElementById("newm");if(ni&&kv)ni.value=kv;
   var ns=document.getElementById("newmu");if(ns&&kk)ns.value=kk;
   var n=S.draft.sets.length;
-  document.getElementById("bar").innerHTML='<div class="bar"><div class="in"><div class="sum">'+n+' série'+(n>1?"s":"")+'<br>'+(S.draft.xp||0)+' XP</div><button class="btn" data-a="finish"'+(n?"":" disabled")+'>Terminer la séance</button></div></div>';
+  document.getElementById("bar").innerHTML=!S.draft.meta?'':'<div class="bar"><div class="in"><div class="sum">'+n+' série'+(n>1?"s":"")+'<br>'+(S.draft.xp||0)+' XP</div><button class="btn" data-a="finish"'+(n?"":" disabled")+'>Terminer la séance</button></div></div>';
   document.getElementById("sheet").innerHTML=sheetHtml();
   document.getElementById("pop").innerHTML=popHtml();
   if(aid){var ae=document.getElementById(aid);if(ae){ae.value=av;ae.focus({preventScroll:true});try{ae.setSelectionRange(as,as)}catch(_){}}}
